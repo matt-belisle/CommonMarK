@@ -39,18 +39,18 @@ class ThematicBreakTest {
 
     @Test(expected = Exception::class)
     fun appendLine() {
-        ThematicBreak.parse(passingString[0].first).appendLine("failPls")
+        ThematicBreak.parse(passingString[0].first, 0).appendLine("failPls")
     }
 
     @Test
     fun match() {
-        assertFalse(ThematicBreak.parse(passingString[0].first).match("failPls"))
+        assertFalse(ThematicBreak.parse(passingString[0].first, 0).match("failPls"))
     }
 
     @Test
     fun successfulParse(){
         passingString.forEach {
-            val thematicBreak = ThematicBreak.parse(it.first)
+            val thematicBreak = ThematicBreak.parse(it.first, 0)
 
             assertEquals( it.second, thematicBreak.thematicBreakChar)
             assertEquals( it.first, (thematicBreak.inline[0] as InlineString).line)
@@ -58,5 +58,5 @@ class ThematicBreakTest {
     }
 
     @Test(expected = AssertionError::class)
-    fun doesntParse() = failingString.forEach { ThematicBreak.parse(it) }
+    fun doesntParse() = failingString.forEach { ThematicBreak.parse(it, 0) }
 }

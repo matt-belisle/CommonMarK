@@ -1,11 +1,9 @@
 package com.matt.belisle.commonmark.ast.leafBlocks
 
-import com.matt.belisle.commonmark.ast.IMatchable
-import com.matt.belisle.commonmark.ast.IParsable
+import com.matt.belisle.commonmark.ast.*
 import com.matt.belisle.commonmark.ast.InlineElements.InlineString
-import com.matt.belisle.commonmark.ast.countLeadingSpaces
 
-class ThematicBreak private constructor(val thematicBreakChar: Char): Leaf(){
+class ThematicBreak private constructor(val thematicBreakChar: Char, indentation: Int) : Leaf(indentation) {
     override val canBeConsecutive: Boolean = true
     override val canLazyContinue: Boolean = false
 
@@ -16,48 +14,48 @@ class ThematicBreak private constructor(val thematicBreakChar: Char): Leaf(){
     }
 
 
-    private constructor(line: String, thematicBreakChar: Char) : this(thematicBreakChar) {
+    private constructor(line: String, thematicBreakChar: Char, indentation: Int) : this(thematicBreakChar, indentation) {
         this.inline.add(InlineString(line))
     }
+
     override fun match(line: String): Boolean {
         // this block cannot be continued so it will never match with a following line
         return false
     }
 
-    companion object: IMatchable, IParsable<ThematicBreak>{
-        override fun parse(line: String): ThematicBreak {
-            assert(match(line))
+    companion object : IStaticMatchable, IParsable<ThematicBreak> {
+        override fun parse(line: String, indentation: Int): ThematicBreak {
+            assert(match(line, indentation))
             val (char, _) = getThematicCharacter(line)
             // since asserting match this is safe
-            return ThematicBreak(line, char!!)
+            return ThematicBreak(line, char!!, indentation)
         }
 
-        override fun match(line: String): Boolean {
-            return line.countLeadingSpaces() < 4 && getThematicCharacter(line).second
+        override fun match(line: String, indentation: Int): Boolean {
+            return line.countLeadingSpaces() < indentCheck(indentation) && getThematicCharacter(line).second
         }
+
         // iterates through the line and gets the character that the thematic break uses , '-' '_' '*'
         private fun getThematicCharacter(line: String): Pair<Char?, Boolean> {
             var char: Char? = null
             var count = 0
             line.forEach {
-            if(it == ' ' ){
-                // no op spaces are fine
-            } else if(it != char) {
-                if(char != null || (it != '_' || it != '-' || it != '*')){
-                    return Pair(null, false)
-                } else {
-                    char = it
+                if (it == ' ') {
+                    // no op spaces are fine
+                } else if (it != char) {
+                    if (char != null || (it != '_' && it != '-' && it != '*')) {
+                        return Pair(null, false)
+                    } else {
+                        char = it
+                        count++
+                    }
+                } else if (it == char) {
                     count++
                 }
-            } else if (it == char){
-                count++
-            }
-
             }
             return Pair(char, count > 2)
         }
     }
-
 
 
 }

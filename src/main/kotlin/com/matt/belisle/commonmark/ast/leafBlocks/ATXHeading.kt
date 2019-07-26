@@ -3,7 +3,7 @@ package com.matt.belisle.commonmark.ast.leafBlocks
 import com.matt.belisle.commonmark.ast.*
 import com.matt.belisle.commonmark.ast.InlineElements.InlineString
 
-class ATXHeading private constructor(val headingLevel: Int): Leaf(){
+class ATXHeading private constructor(val headingLevel: Int, indentation: Int): Leaf(indentation = indentation){
 
     override val canLazyContinue: Boolean = false
     override val canBeConsecutive: Boolean = true
@@ -14,7 +14,7 @@ class ATXHeading private constructor(val headingLevel: Int): Leaf(){
     }
 
     // expects a well formed heading line, i.e. leading and trailing hashtags removed
-    private constructor(line: String, headingLevel: Int) : this(headingLevel) {
+    private constructor(line: String, headingLevel: Int, indentation: Int) : this(headingLevel, indentation) {
         this.inline.add(InlineString(line))
     }
 
@@ -22,12 +22,12 @@ class ATXHeading private constructor(val headingLevel: Int): Leaf(){
         // this block cannot be continued so it will never match with a following line
         return false
     }
-    companion object: IMatchable, IParsable<ATXHeading>{
-        override fun match(line: String): Boolean {
+    companion object: IStaticMatchable, IParsable<ATXHeading>{
+        override fun match(line: String, indentation: Int): Boolean {
             //only need to check that the initial #s are correctly formatted, parse can take care of the post ones
 
             // spec says up to three leading spaces okay
-            if(line.countLeadingSpaces() < 4){
+            if(line.countLeadingSpaces() < indentCheck(indentation)){
                 val (trimmed, leadingTags) = trimAndGetLeadingHashTags(line)
                 // at most 6 levels of header
                 // the character following the hashtags must be a space
@@ -37,12 +37,12 @@ class ATXHeading private constructor(val headingLevel: Int): Leaf(){
             return false
         }
 
-        override fun parse(line: String): ATXHeading {
-            assert(match(line))
+        override fun parse(line: String, indentation: Int): ATXHeading {
+            assert(match(line, indentation))
             val (trimmed, leadingTags) = trimAndGetLeadingHashTags(line)
             // empty heading, keep levels but no content
             if(trimmed.length == leadingTags){
-                return ATXHeading("", leadingTags)
+                return ATXHeading("", leadingTags, indentation)
             }
 
             // the heading has some value... most likely, still need to count trailing #s and remove them
@@ -57,7 +57,7 @@ class ATXHeading private constructor(val headingLevel: Int): Leaf(){
                 trimmed.substring(leadingTags).trim()
             }
             // still need to remove the escaped hashtag's backslash
-            return ATXHeading(tagsRemoved.replace("\\#", "#"), leadingTags)
+            return ATXHeading(tagsRemoved.replace("\\#", "#"), leadingTags, indentation)
 
         }
 

@@ -22,3 +22,5 @@ fun String.countTrailingChar(char: Char): Int {
     }
     return count
 }
+
+inline fun indentCheck(indent: Int) = 4 * (indent + 1)

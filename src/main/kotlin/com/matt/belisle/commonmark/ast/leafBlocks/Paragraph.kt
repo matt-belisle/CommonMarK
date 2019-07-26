@@ -1,7 +1,7 @@
 package com.matt.belisle.commonmark.ast.leafBlocks
 
-import com.matt.belisle.commonmark.ast.IMatchable
 import com.matt.belisle.commonmark.ast.IParsable
+import com.matt.belisle.commonmark.ast.IStaticMatchable
 import com.matt.belisle.commonmark.ast.InlineElements.InlineString
 
 // The paragraph block accepts any non empty line, as it is assumed if it would've matched any other block
@@ -9,12 +9,12 @@ import com.matt.belisle.commonmark.ast.InlineElements.InlineString
 // It removes leading spaces, and ends on a blank line / other block opening
 
 //private as to only allow the parse function in companion to construct a block
-class Paragraph private constructor(): Leaf(){
+class Paragraph private constructor(indentation: Int): Leaf(indentation = indentation){
 
     override val canLazyContinue: Boolean = true
     override val canBeConsecutive: Boolean = false
 
-    private constructor(line: String) : this() {
+    private constructor(line: String, indentation: Int) : this(indentation) {
         // remove leading and trailing spaces
         inline.add(InlineString(line))
     }
@@ -29,17 +29,17 @@ class Paragraph private constructor(): Leaf(){
         inline.add(InlineString(line.trim()))
     }
 
-    companion object: IMatchable, IParsable<Paragraph>{
+    companion object: IStaticMatchable, IParsable<Paragraph>{
 
-        override fun parse(line: String): Paragraph {
+        override fun parse(line: String, indentation: Int): Paragraph {
             // must be able to match to parse the line
-            assert(this.match(line))
+            assert(this.match(line, indentation))
             //remove leading and trailing spaces and return a new paragraph
-            return Paragraph(line.trim())
+            return Paragraph(line.trim(), indentation)
         }
 
         // this will be the match to open a new paragraph block
-        override fun match(line: String): Boolean {
+        override fun match(line: String, indentation: Int): Boolean {
             return line.isNotBlank()
         }
 

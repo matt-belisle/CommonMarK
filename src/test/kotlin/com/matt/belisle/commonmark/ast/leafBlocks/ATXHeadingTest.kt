@@ -40,19 +40,19 @@ class ATXHeadingTest {
     )
 
     @Test
-    fun match() = passingString.forEach { assertTrue("${it.first} failed to be matched", ATXHeading.match(it.first)) }
+    fun match() = passingString.forEach { assertTrue("${it.first} failed to be matched", ATXHeading.match(it.first, 0)) }
 
     @Test
-    fun doesntMatch() = failingString.forEach { assertFalse("$it was matched", ATXHeading.match(it)) }
+    fun doesntMatch() = failingString.forEach { assertFalse("$it was matched", ATXHeading.match(it, 0)) }
 
     @Test(expected = AssertionError::class)
-    fun doesntParse() = failingString.forEach { ATXHeading.parse(it) }
+    fun doesntParse() = failingString.forEach { ATXHeading.parse(it, 0) }
 
     @Test
     fun parses() {
         passingString.forEach {
 
-            val ATX = ATXHeading.parse(it.first)
+            val ATX = ATXHeading.parse(it.first, 0)
 
             val text = ATX.inline[0] as InlineString
             assertEquals("Parsed String ${text.line}, is not equal to the correct String ${it.second}", text.line, it.second)
@@ -64,7 +64,7 @@ class ATXHeadingTest {
 
     @Test(expected = Exception::class)
     fun appendLine(){
-        val ATX = ATXHeading.parse(passingString[0].first)
+        val ATX = ATXHeading.parse(passingString[0].first, 0)
         ATX.appendLine("AHHHH")
     }
 }

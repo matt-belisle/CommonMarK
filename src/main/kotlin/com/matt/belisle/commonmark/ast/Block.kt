@@ -2,9 +2,9 @@ package com.matt.belisle.commonmark.ast
 
 
 
-abstract class Block: IMatchable {
+abstract class Block(public val indent: Int): IMatchable {
     //if this is closed then nothing new can happen to it
-    internal var isOpen: Boolean = true
+    private var isOpen: Boolean = true
 
     //Block Quote provides a good meaning for these booleans
     // https://spec.commonmark.org/0.29/#block-quotes
@@ -24,5 +24,7 @@ abstract class Block: IMatchable {
     override fun match(line: String): Boolean {
         return isOpen
     }
+
+
 
 }
