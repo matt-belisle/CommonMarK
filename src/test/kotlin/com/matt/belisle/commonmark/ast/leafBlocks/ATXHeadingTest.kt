@@ -62,7 +62,7 @@ class ATXHeadingTest {
         }
     }
 
-    @Test(expected = AssertionError::class)
+    @Test(expected = Exception::class)
     fun appendLine(){
         val ATX = ATXHeading.parse(passingString[0].first)
         ATX.appendLine("AHHHH")

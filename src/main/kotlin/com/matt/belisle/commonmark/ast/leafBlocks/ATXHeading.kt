@@ -4,21 +4,19 @@ import com.matt.belisle.commonmark.ast.*
 import com.matt.belisle.commonmark.ast.InlineElements.InlineString
 
 class ATXHeading private constructor(val headingLevel: Int): Leaf(){
+
+    override val canLazyContinue: Boolean = false
+    override val canBeConsecutive: Boolean = true
+
     // you cannot append a line to an ATXHeading so this will error out the parser
     override fun appendLine(line: String) {
-        // WILL ALWAYS THROW ASSERT ERROR
-        assert(match(line))
+        throw Exception("Cannot append a line to an ATX HEADING")
     }
 
     // expects a well formed heading line, i.e. leading and trailing hashtags removed
     private constructor(line: String, headingLevel: Int) : this(headingLevel) {
-
         this.inline.add(InlineString(line))
-
     }
-
-    override val canLazyContinue: Boolean = false
-    override val canBeConsecutive: Boolean = true
 
     override fun match(line: String): Boolean {
         // this block cannot be continued so it will never match with a following line
