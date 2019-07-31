@@ -23,4 +23,13 @@ fun String.countTrailingChar(char: Char): Int {
     return count
 }
 
-inline fun indentCheck(indent: Int) = 4 * (indent + 1)
+//removes up to amount of the character
+fun String.removeLeadingChar(char: Char, amount: Int): String{
+    var am = amount
+    return this.dropWhile {
+        it == char && am-- > 0
+    }
+}
+
+inline fun indentCheck(indent: Int) = 4 + indent
+

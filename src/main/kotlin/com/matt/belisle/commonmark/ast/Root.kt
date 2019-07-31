@@ -1,5 +1,7 @@
 package com.matt.belisle.commonmark.ast
 
+import com.matt.belisle.commonmark.ast.ContainerBlocks.Container
+
 // represents the root node of the markdown AST, will be closed when the entire document is parsed
 // can never be continued or have anything after
 class Root: Container() {

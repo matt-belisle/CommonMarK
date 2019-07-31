@@ -1,9 +1,13 @@
 package com.matt.belisle.commonmark.ast.leafBlocks
 
 import com.matt.belisle.commonmark.ast.InlineElements.InlineString
+import com.matt.belisle.commonmark.ast.Root
 import org.junit.Assert.*
 import org.junit.Test
 import java.lang.AssertionError
+
+
+val root: Root = Root()
 
 class ATXHeadingTest {
     private val passingString: List<Triple<String, String, Int>> = listOf(
@@ -40,19 +44,19 @@ class ATXHeadingTest {
     )
 
     @Test
-    fun match() = passingString.forEach { assertTrue("${it.first} failed to be matched", ATXHeading.match(it.first, 0)) }
+    fun match() = passingString.forEach { assertTrue("${it.first} failed to be matched", ATXHeading.match(it.first, root,0)) }
 
     @Test
-    fun doesntMatch() = failingString.forEach { assertFalse("$it was matched", ATXHeading.match(it, 0)) }
+    fun doesntMatch() = failingString.forEach { assertFalse("$it was matched", ATXHeading.match(it, root,0)) }
 
     @Test(expected = AssertionError::class)
-    fun doesntParse() = failingString.forEach { ATXHeading.parse(it, 0) }
+    fun doesntParse() = failingString.forEach { ATXHeading.parse(it, root, 0) }
 
     @Test
     fun parses() {
         passingString.forEach {
 
-            val ATX = ATXHeading.parse(it.first, 0)
+            val ATX = ATXHeading.parse(it.first, root,0)
 
             val text = ATX.inline[0] as InlineString
             assertEquals("Parsed String ${text.line}, is not equal to the correct String ${it.second}", text.line, it.second)
@@ -64,7 +68,7 @@ class ATXHeadingTest {
 
     @Test(expected = Exception::class)
     fun appendLine(){
-        val ATX = ATXHeading.parse(passingString[0].first, 0)
+        val ATX = ATXHeading.parse(passingString[0].first, root, 0)
         ATX.appendLine("AHHHH")
     }
 }

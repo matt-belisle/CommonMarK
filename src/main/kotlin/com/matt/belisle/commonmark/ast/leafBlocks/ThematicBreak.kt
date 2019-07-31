@@ -24,14 +24,14 @@ class ThematicBreak private constructor(val thematicBreakChar: Char, indentation
     }
 
     companion object : IStaticMatchable, IParsable<ThematicBreak> {
-        override fun parse(line: String, indentation: Int): ThematicBreak {
-            assert(match(line, indentation))
+        override fun parse(line: String, currentOpenBlock: Block, indentation: Int): ThematicBreak {
+            assert(match(line, currentOpenBlock, indentation))
             val (char, _) = getThematicCharacter(line)
             // since asserting match this is safe
             return ThematicBreak(line, char!!, indentation)
         }
 
-        override fun match(line: String, indentation: Int): Boolean {
+        override fun match(line: String,currentOpenBlock: Block, indentation: Int): Boolean {
             return line.countLeadingSpaces() < indentCheck(indentation) && getThematicCharacter(line).second
         }
 

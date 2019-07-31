@@ -23,7 +23,7 @@ class ATXHeading private constructor(val headingLevel: Int, indentation: Int): L
         return false
     }
     companion object: IStaticMatchable, IParsable<ATXHeading>{
-        override fun match(line: String, indentation: Int): Boolean {
+        override fun match(line: String, currentOpenBlock: Block, indentation: Int): Boolean {
             //only need to check that the initial #s are correctly formatted, parse can take care of the post ones
 
             // spec says up to three leading spaces okay
@@ -37,8 +37,8 @@ class ATXHeading private constructor(val headingLevel: Int, indentation: Int): L
             return false
         }
 
-        override fun parse(line: String, indentation: Int): ATXHeading {
-            assert(match(line, indentation))
+        override fun parse(line: String, currentOpenBlock: Block, indentation: Int): ATXHeading {
+            assert(match(line, currentOpenBlock,indentation))
             val (trimmed, leadingTags) = trimAndGetLeadingHashTags(line)
             // empty heading, keep levels but no content
             if(trimmed.length == leadingTags){

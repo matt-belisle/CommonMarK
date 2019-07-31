@@ -1,5 +1,6 @@
 package com.matt.belisle.commonmark.ast.leafBlocks
 
+import com.matt.belisle.commonmark.ast.Block
 import com.matt.belisle.commonmark.ast.IParsable
 import com.matt.belisle.commonmark.ast.IStaticMatchable
 import com.matt.belisle.commonmark.ast.InlineElements.InlineString
@@ -31,15 +32,15 @@ class Paragraph private constructor(indentation: Int): Leaf(indentation = indent
 
     companion object: IStaticMatchable, IParsable<Paragraph>{
 
-        override fun parse(line: String, indentation: Int): Paragraph {
+        override fun parse(line: String, currentOpenBlock: Block, indentation: Int): Paragraph {
             // must be able to match to parse the line
-            assert(this.match(line, indentation))
+            assert(this.match(line, currentOpenBlock, indentation))
             //remove leading and trailing spaces and return a new paragraph
             return Paragraph(line.trim(), indentation)
         }
 
         // this will be the match to open a new paragraph block
-        override fun match(line: String, indentation: Int): Boolean {
+        override fun match(line: String, currentOpenBlock: Block, indentation: Int): Boolean {
             return line.isNotBlank()
         }
 
