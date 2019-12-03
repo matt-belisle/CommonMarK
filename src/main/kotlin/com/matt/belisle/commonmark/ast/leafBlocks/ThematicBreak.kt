@@ -1,11 +1,10 @@
 package com.matt.belisle.commonmark.ast.leafBlocks
 
 import com.matt.belisle.commonmark.ast.*
-import com.matt.belisle.commonmark.ast.InlineElements.InlineString
+import com.matt.belisle.commonmark.ast.containerBlocks.Container
+import com.matt.belisle.commonmark.ast.inlineElements.InlineString
 
-class ThematicBreak private constructor(val thematicBreakChar: Char, indentation: Int) : Leaf(indentation) {
-    override val canBeConsecutive: Boolean = true
-    override val canLazyContinue: Boolean = false
+class ThematicBreak private constructor(val thematicBreakChar: Char, parent: Container, indentation: Int) : Leaf(parent, indentation) {
 
     //cannot append anything to a thematic break so this will throw an error
     override fun appendLine(line: String) {
@@ -14,7 +13,7 @@ class ThematicBreak private constructor(val thematicBreakChar: Char, indentation
     }
 
 
-    private constructor(line: String, thematicBreakChar: Char, indentation: Int) : this(thematicBreakChar, indentation) {
+    private constructor(line: String, thematicBreakChar: Char, indentation: Int, parent: Container) : this(thematicBreakChar, parent, indentation) {
         this.inline.add(InlineString(line))
     }
 
@@ -23,12 +22,21 @@ class ThematicBreak private constructor(val thematicBreakChar: Char, indentation
         return false
     }
 
-    companion object : IStaticMatchable, IParsable<ThematicBreak> {
-        override fun parse(line: String, currentOpenBlock: Block, indentation: Int): ThematicBreak {
+    override fun render(): String {
+        return "<hr />\n"
+    }
+
+    companion object : IStaticMatchable<ThematicBreak> {
+
+        override val canBeConsecutive: Boolean = true
+        override val canLazyContinue: Boolean = false
+        override val canInterruptParagraph: Boolean = true
+
+        override fun parse(line: String, currentOpenBlock: Block, indentation: Int, parent: Container): ThematicBreak {
             assert(match(line, currentOpenBlock, indentation))
             val (char, _) = getThematicCharacter(line)
             // since asserting match this is safe
-            return ThematicBreak(line, char!!, indentation)
+            return ThematicBreak(line, char!!, indentation, parent)
         }
 
         override fun match(line: String,currentOpenBlock: Block, indentation: Int): Boolean {

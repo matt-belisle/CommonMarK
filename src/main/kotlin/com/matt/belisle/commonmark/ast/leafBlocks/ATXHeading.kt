@@ -1,12 +1,10 @@
 package com.matt.belisle.commonmark.ast.leafBlocks
 
 import com.matt.belisle.commonmark.ast.*
-import com.matt.belisle.commonmark.ast.InlineElements.InlineString
+import com.matt.belisle.commonmark.ast.containerBlocks.Container
+import com.matt.belisle.commonmark.ast.inlineElements.InlineString
 
-class ATXHeading private constructor(val headingLevel: Int, indentation: Int): Leaf(indentation = indentation){
-
-    override val canLazyContinue: Boolean = false
-    override val canBeConsecutive: Boolean = true
+class ATXHeading private constructor(val headingLevel: Int, indentation: Int, parent: Container): Leaf(parent = parent, indent = indentation){
 
     // you cannot append a line to an ATXHeading so this will error out the parser
     override fun appendLine(line: String) {
@@ -14,7 +12,7 @@ class ATXHeading private constructor(val headingLevel: Int, indentation: Int): L
     }
 
     // expects a well formed heading line, i.e. leading and trailing hashtags removed
-    private constructor(line: String, headingLevel: Int, indentation: Int) : this(headingLevel, indentation) {
+    private constructor(line: String, headingLevel: Int, indentation: Int, parent: Container) : this(headingLevel, indentation, parent) {
         this.inline.add(InlineString(line))
     }
 
@@ -22,7 +20,16 @@ class ATXHeading private constructor(val headingLevel: Int, indentation: Int): L
         // this block cannot be continued so it will never match with a following line
         return false
     }
-    companion object: IStaticMatchable, IParsable<ATXHeading>{
+
+    override fun render(): String {
+        return "<h$headingLevel> ${inline.first().render()} </h$headingLevel>\n"
+    }
+    companion object: IStaticMatchable<ATXHeading>{
+
+        override val canLazyContinue: Boolean = false
+        override val canBeConsecutive: Boolean = true
+        override val canInterruptParagraph: Boolean = true
+
         override fun match(line: String, currentOpenBlock: Block, indentation: Int): Boolean {
             //only need to check that the initial #s are correctly formatted, parse can take care of the post ones
 
@@ -32,17 +39,17 @@ class ATXHeading private constructor(val headingLevel: Int, indentation: Int): L
                 // at most 6 levels of header
                 // the character following the hashtags must be a space
                 // OR the line can be only hashtags (up to 6)
-                return leadingTags < 7 && (trimmed.length == leadingTags || trimmed[leadingTags] == ' ')
+                return leadingTags in 1..6 && (trimmed.length == leadingTags || trimmed[leadingTags] == ' ')
             }
             return false
         }
 
-        override fun parse(line: String, currentOpenBlock: Block, indentation: Int): ATXHeading {
+        override fun parse(line: String, currentOpenBlock: Block, indentation: Int, parent: Container): ATXHeading {
             assert(match(line, currentOpenBlock,indentation))
             val (trimmed, leadingTags) = trimAndGetLeadingHashTags(line)
             // empty heading, keep levels but no content
             if(trimmed.length == leadingTags){
-                return ATXHeading("", leadingTags, indentation)
+                return ATXHeading("", leadingTags, indentation, parent)
             }
 
             // the heading has some value... most likely, still need to count trailing #s and remove them
@@ -57,7 +64,7 @@ class ATXHeading private constructor(val headingLevel: Int, indentation: Int): L
                 trimmed.substring(leadingTags).trim()
             }
             // still need to remove the escaped hashtag's backslash
-            return ATXHeading(tagsRemoved.replace("\\#", "#"), leadingTags, indentation)
+            return ATXHeading(tagsRemoved.replace("\\#", "#"), leadingTags, indentation, parent)
 
         }
 

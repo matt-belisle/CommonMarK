@@ -1,7 +1,6 @@
 package com.matt.belisle.commonmark.ast.leafBlocks
 
-import com.matt.belisle.commonmark.ast.InlineElements.InlineString
-import com.matt.belisle.commonmark.ast.Document
+import com.matt.belisle.commonmark.ast.inlineElements.InlineString
 import org.junit.Assert.*
 import org.junit.Test
 import java.lang.AssertionError
@@ -48,13 +47,13 @@ class ATXHeadingTest: BasicBlockTest() {
     fun doesntMatch() = failingString.forEach { assertFalse("$it was matched", ATXHeading.match(it, this.document,0)) }
 
     @Test(expected = AssertionError::class)
-    fun doesntParse() = failingString.forEach { ATXHeading.parse(it, this.document, 0) }
+    fun doesntParse() = failingString.forEach { ATXHeading.parse(it, this.document, 0, document) }
 
     @Test
     fun parses() {
         passingString.forEach {
 
-            val ATX = ATXHeading.parse(it.first, this.document,0)
+            val ATX = ATXHeading.parse(it.first, this.document,0, document)
 
             val text = ATX.inline[0] as InlineString
             assertEquals("Parsed String ${text.line}, is not equal to the correct String ${it.second}", text.line, it.second)
@@ -66,7 +65,7 @@ class ATXHeadingTest: BasicBlockTest() {
 
     @Test(expected = Exception::class)
     fun appendLine(){
-        val ATX = ATXHeading.parse(passingString[0].first, this.document, 0)
+        val ATX = ATXHeading.parse(passingString[0].first, this.document, 0, document)
         ATX.appendLine("AHHHH")
     }
 }

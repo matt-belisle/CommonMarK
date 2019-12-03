@@ -1,6 +1,6 @@
 package com.matt.belisle.commonmark.ast.leafBlocks
 
-import com.matt.belisle.commonmark.ast.InlineElements.InlineString
+import com.matt.belisle.commonmark.ast.inlineElements.InlineString
 import org.junit.Test
 
 import org.junit.Assert.*
@@ -39,18 +39,18 @@ class ThematicBreakTest: BasicBlockTest() {
 
     @Test(expected = Exception::class)
     fun appendLine() {
-        ThematicBreak.parse(passingString[0].first, this.document, 0).appendLine("failPls")
+        ThematicBreak.parse(passingString[0].first, this.document, 0, document).appendLine("failPls")
     }
 
     @Test
     fun match() {
-        assertFalse(ThematicBreak.parse(passingString[0].first, this.document, 0).match("failPls"))
+        assertFalse(ThematicBreak.parse(passingString[0].first, this.document, 0, document).match("failPls"))
     }
 
     @Test
     fun successfulParse(){
         passingString.forEach {
-            val thematicBreak = ThematicBreak.parse(it.first, this.document, 0)
+            val thematicBreak = ThematicBreak.parse(it.first, this.document, 0, document)
 
             assertEquals( it.second, thematicBreak.thematicBreakChar)
             assertEquals( it.first, (thematicBreak.inline[0] as InlineString).line)
@@ -58,5 +58,5 @@ class ThematicBreakTest: BasicBlockTest() {
     }
 
     @Test(expected = AssertionError::class)
-    fun doesntParse() = failingString.forEach { ThematicBreak.parse(it, this.document, 0) }
+    fun doesntParse() = failingString.forEach { ThematicBreak.parse(it, this.document, 0, document) }
 }
