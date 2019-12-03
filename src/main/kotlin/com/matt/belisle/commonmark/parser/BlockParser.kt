@@ -13,7 +13,7 @@ import kotlin.reflect.KClass
 // containers are the containers that can be parsed to
 class BlockParser(private val leaves: List<IStaticMatchable<out Leaf>>, private val containers: List<KClass<out Container>>) {
 
-    constructor(): this(listOf(ThematicBreak.Companion, ATXHeading.Companion, CodeFence.Companion, Paragraph.Companion, BlankLine.Companion), emptyList())
+    constructor(): this(listOf(IndentedCodeBlock.Companion, ThematicBreak.Companion, ATXHeading.Companion, CodeFence.Companion, Paragraph.Companion, BlankLine.Companion), emptyList())
     fun parse(data: List<String> ): Document{
         val canInterruptParagraph = leaves.filter { it.canInterruptParagraph }
         val document = Document()

@@ -22,7 +22,7 @@ class ATXHeading private constructor(val headingLevel: Int, indentation: Int, pa
     }
 
     override fun render(): String {
-        return "<h$headingLevel> ${inline.first().render()} </h$headingLevel>\n"
+        return "<h$headingLevel>${inline.first().render()}</h$headingLevel>\n"
     }
     companion object: IStaticMatchable<ATXHeading>{
 

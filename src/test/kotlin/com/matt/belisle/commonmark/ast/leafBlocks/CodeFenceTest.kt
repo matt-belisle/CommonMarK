@@ -14,4 +14,10 @@ class CodeFenceTest: BasicBlockTest(){
         assertEquals(0, codeFence.fenceIndent)
         assertEquals("", codeFence.infoString)
     }
+
+    @Test
+    fun specTest() {
+        specTest("Fenced code blocks")
+        specTest(112)
+    }
 }
