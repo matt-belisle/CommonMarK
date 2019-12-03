@@ -4,6 +4,7 @@ import com.matt.belisle.commonmark.ast.Block
 import com.matt.belisle.commonmark.ast.IParsable
 import com.matt.belisle.commonmark.ast.IStaticMatchable
 import com.matt.belisle.commonmark.ast.InlineElements.InlineString
+import com.matt.belisle.commonmark.ast.countLeadingSpaces
 
 // The paragraph block accepts any non empty line, as it is assumed if it would've matched any other block
 // then it would have been matched before getting to a paragraph
@@ -32,16 +33,16 @@ class Paragraph private constructor(indentation: Int): Leaf(indentation = indent
         assert(match(line))
         val trimmed = line.trim()
         val (isSetext, setextChar) = isSetext(trimmed)
-        if(isSetext) {
+        if(isSetext && line.countLeadingSpaces() < 4) {
             this.close()
             setextLevel = if(setextChar == '=') 1 else 2
             this.isSetext = true
         }
-        inline.add(InlineString(trimmed))
+        else inline.add(InlineString(trimmed))
     }
     private fun isSetext(line: String): Pair<Boolean,Char>{
         var char = line[0]
-        if(char != '-' || char != '=') return Pair(false, ' ')
+        if(char != '-' && char != '=') return Pair(false, ' ')
         line.forEach {
             if(it != char) return Pair(false, ' ')
         }

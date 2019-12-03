@@ -29,4 +29,33 @@ class ParagraphTest: BasicBlockTest() {
         assertFalse(paragraph.match(testBlank))
         assertTrue(paragraph.match(testString))
     }
+
+    @Test
+    fun setextHeadings() {
+        var paragraph = Paragraph.parse(testString, this.document, 0)
+        paragraph.appendLine("-")
+        assertFalse(paragraph.isOpen())
+        assertTrue(paragraph.isSetext)
+        assertEquals(paragraph.inline.size, 1)
+        assertEquals(paragraph.setextLevel, 2)
+
+        paragraph = Paragraph.parse(testString, this.document, 0)
+        paragraph.appendLine("=")
+        assertFalse(paragraph.isOpen())
+        assertTrue(paragraph.isSetext)
+        assertEquals(paragraph.inline.size, 1)
+        assertEquals(paragraph.setextLevel, 1)
+
+        paragraph = Paragraph.parse(testString, this.document, 0)
+        paragraph.appendLine("- -")
+        assertTrue(paragraph.isOpen())
+        assertFalse(paragraph.isSetext)
+        assertEquals(paragraph.inline.size, 2)
+
+        paragraph = Paragraph.parse(testString, this.document, 0)
+        paragraph.appendLine("    -")
+        assertTrue(paragraph.isOpen())
+        assertFalse(paragraph.isSetext)
+
+    }
 }

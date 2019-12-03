@@ -2,7 +2,7 @@ package com.matt.belisle.commonmark.ast.ContainerBlocks
 
 import com.matt.belisle.commonmark.ast.countLeadingSpaces
 
-class List: Container(){
+class ListContainer: Container(){
     //TODO Implement this is placeholder for various matching logic
     override val canLazyContinue: Boolean = true
     override val canBeConsecutive: Boolean = false

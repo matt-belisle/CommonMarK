@@ -1,7 +1,7 @@
 package com.matt.belisle.commonmark.ast.leafBlocks
 
-import com.matt.belisle.commonmark.ast.Document
-import org.junit.Assert.*
+import CodeFence
+import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class CodeFenceTest: BasicBlockTest(){

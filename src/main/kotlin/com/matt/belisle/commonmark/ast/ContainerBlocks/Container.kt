@@ -6,5 +6,5 @@ import com.matt.belisle.commonmark.ast.Block
 
 abstract class Container: Block(indent = 0){
 
-    val children: List<Block> = emptyList()
+    val children: List<Block> = emptyList<Block>()
 }
