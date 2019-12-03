@@ -40,11 +40,13 @@ class ThematicBreak private constructor(val thematicBreakChar: Char, parent: Con
         }
 
         override fun match(line: String,currentOpenBlock: Block, indentation: Int): Boolean {
-            return line.countLeadingSpaces() < indentCheck(indentation) && getThematicCharacter(line).second
+            val (thematicChar, match, count) = getThematicCharacter(line)
+            // last check should be taken as a setext
+            return line.countLeadingSpaces() < indentCheck(indentation) && match && !(currentOpenBlock is Paragraph && thematicChar == '-' && line.trim().length == count)
         }
 
         // iterates through the line and gets the character that the thematic break uses , '-' '_' '*'
-        private fun getThematicCharacter(line: String): Pair<Char?, Boolean> {
+        private fun getThematicCharacter(line: String): Triple<Char?, Boolean, Int> {
             var char: Char? = null
             var count = 0
             line.forEach {
@@ -52,7 +54,7 @@ class ThematicBreak private constructor(val thematicBreakChar: Char, parent: Con
                     // no op spaces are fine
                 } else if (it != char) {
                     if (char != null || (it != '_' && it != '-' && it != '*')) {
-                        return Pair(null, false)
+                        return Triple(null, false, 0)
                     } else {
                         char = it
                         count++
@@ -61,7 +63,7 @@ class ThematicBreak private constructor(val thematicBreakChar: Char, parent: Con
                     count++
                 }
             }
-            return Pair(char, count > 2)
+            return Triple(char, count > 2, count)
         }
     }
 

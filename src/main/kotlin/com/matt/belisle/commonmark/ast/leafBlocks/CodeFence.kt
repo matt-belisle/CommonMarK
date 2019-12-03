@@ -19,11 +19,7 @@ class CodeFence private constructor(
     parent: Container
 ) : Leaf(indent = indent, parent = parent) {
 
-
-    // everything matches a code fence once opened
-    override fun match(line: String): Boolean {
-        return super.match(line)
-    }
+    //match is just anything until it detects the end
 
     override fun appendLine(line: String) {
         assert(match(line))
@@ -31,7 +27,7 @@ class CodeFence private constructor(
         val trimmed = line.trim()
         val leadingFenceChar = trimmed.countLeadingChar(fenceChar)
         // close if the closing fence block is found
-        if (line.countLeadingSpaces() < indentCheck(indent) && leadingFenceChar >= fenceLength && fenceLength == trimmed.length) {
+        if (line.countLeadingSpaces() < indentCheck(indent) && leadingFenceChar >= fenceLength && leadingFenceChar == trimmed.length) {
             close()
         } else {
             inline.add(InlineString(removeIndent))
@@ -42,7 +38,7 @@ class CodeFence private constructor(
         val builder = StringBuilder()
         with(builder){
             append("<pre>")
-            val infoStringHTML = if(infoString.isNotEmpty()) " class=\"$infoString\"" else ""
+            val infoStringHTML = if(infoString.isNotEmpty()) " class=\"language-${infoString.trim().split(' ').first()}\"" else ""
             append("<code$infoStringHTML>")
             inline.forEach { append("${it.render()}\n") }
             append("</code>")

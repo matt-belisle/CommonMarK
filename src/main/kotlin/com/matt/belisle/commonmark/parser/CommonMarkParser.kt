@@ -15,7 +15,7 @@ import kotlin.reflect.KClass
 class CommonMarkParser(private val leaves: List<IStaticMatchable<out Leaf>>, private val containers: List<KClass<out Container>>) {
     val blockParser: BlockParser = BlockParser(leaves, containers)
 
-    constructor(): this(listOf(ThematicBreak.Companion, ATXHeading.Companion, CodeFence.Companion, Paragraph.Companion, BlankLine.Companion), emptyList())
+    constructor(): this(listOf(IndentedCodeBlock.Companion, ThematicBreak.Companion, ATXHeading.Companion, CodeFence.Companion, Paragraph.Companion, BlankLine.Companion), emptyList())
     fun parse(data: List<String> ): Document{
         // parse into blocks
         return blockParser.parse(data)

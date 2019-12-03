@@ -68,4 +68,10 @@ class ATXHeadingTest: BasicBlockTest() {
         val ATX = ATXHeading.parse(passingString[0].first, this.document, 0, document)
         ATX.appendLine("AHHHH")
     }
+
+    @Test
+    fun specTest(){
+        specTest("ATX headings")
+//        specTest(35)
+    }
 }

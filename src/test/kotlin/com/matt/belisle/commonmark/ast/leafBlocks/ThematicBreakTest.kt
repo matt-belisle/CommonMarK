@@ -59,4 +59,9 @@ class ThematicBreakTest: BasicBlockTest() {
 
     @Test(expected = AssertionError::class)
     fun doesntParse() = failingString.forEach { ThematicBreak.parse(it, this.document, 0, document) }
+
+    @Test
+    fun specTest(){
+        specTest("Thematic breaks")
+    }
 }
