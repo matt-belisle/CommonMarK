@@ -1,9 +1,10 @@
 package com.matt.belisle.commonmark.ast.leafBlocks
 
 import com.matt.belisle.commonmark.ast.Block
-import com.matt.belisle.commonmark.ast.InlineElements.Inline
+import com.matt.belisle.commonmark.ast.containerBlocks.Container
+import com.matt.belisle.commonmark.ast.inlineElements.Inline
 
-abstract class Leaf(indentation: Int): Block(indentation){
+abstract class Leaf(parent: Container, indent: Int): Block(parent = parent, indent = indent){
     // a list of inline elements for the leaf node, can be text, emphasis etc
     // see InlineElements package
     val inline: MutableList<Inline> = mutableListOf()

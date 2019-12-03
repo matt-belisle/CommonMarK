@@ -1,11 +1,14 @@
-package com.matt.belisle.commonmark.ast.ContainerBlocks
+package com.matt.belisle.commonmark.ast.containerBlocks
 
+import com.matt.belisle.commonmark.ast.Block
 import com.matt.belisle.commonmark.ast.countLeadingSpaces
 
-class ListItem: Container(){
-    //TODO implement
-    override val canLazyContinue: Boolean = true
-    override val canBeConsecutive: Boolean = false
+class ListContainer(parent: Container): Container(parent = parent){
+    //TODO Implement this is placeholder for various matching logic
+//    override val canLazyContinue: Boolean = true
+//    override val canBeConsecutive: Boolean = false
+//    override val canInterruptParagraph: Boolean = true
+
 
     override fun match(line: String): Boolean {
         if(!super.match(line)){

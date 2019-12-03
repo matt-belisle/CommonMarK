@@ -1,10 +1,12 @@
-package com.matt.belisle.commonmark.ast.ContainerBlocks
+package com.matt.belisle.commonmark.ast.containerBlocks
 
 import com.matt.belisle.commonmark.ast.countLeadingSpaces
 
-class BlockQuote: Container(){
-    override val canLazyContinue: Boolean = true
-    override val canBeConsecutive: Boolean = false
+class BlockQuote(parent: Container): Container(parent = parent){
+//    override val canLazyContinue: Boolean = true
+//    override val canBeConsecutive: Boolean = false
+//    override val canInterruptParagraph: Boolean = true
+
 
     override fun match(line: String): Boolean {
         if(!super.match(line)){

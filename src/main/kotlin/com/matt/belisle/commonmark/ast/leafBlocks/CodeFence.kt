@@ -1,7 +1,9 @@
 import com.matt.belisle.commonmark.ast.*
+import com.matt.belisle.commonmark.ast.containerBlocks.Container
 import com.matt.belisle.commonmark.ast.leafBlocks.Leaf
 
-import com.matt.belisle.commonmark.ast.InlineElements.InlineString
+import com.matt.belisle.commonmark.ast.inlineElements.InlineString
+import java.lang.StringBuilder
 
 // The paragraph block accepts any non empty line, as it is assumed if it would've matched any other block
 // then it would have been matched before getting to a paragraph
@@ -9,19 +11,18 @@ import com.matt.belisle.commonmark.ast.InlineElements.InlineString
 
 //private as to only allow the parse function in companion to construct a block
 class CodeFence private constructor(
-    indentation: Int,
+    indent: Int,
     val fenceChar: Char,
     val fenceIndent: Int,
     val fenceLength: Int,
-    val infoString: String
-) : Leaf(indentation = indentation) {
+    val infoString: String,
+    parent: Container
+) : Leaf(indent = indent, parent = parent) {
 
-    override val canLazyContinue: Boolean = true
-    override val canBeConsecutive: Boolean = false
 
-    // this is the match to continue a paragraph block
+    // everything matches a code fence once opened
     override fun match(line: String): Boolean {
-        return !super.match(line)
+        return super.match(line)
     }
 
     override fun appendLine(line: String) {
@@ -37,15 +38,32 @@ class CodeFence private constructor(
         }
     }
 
-    companion object : IStaticMatchable, IParsable<CodeFence> {
+    override fun render(): String {
+        val builder = StringBuilder()
+        with(builder){
+            append("<pre>")
+            val infoStringHTML = if(infoString.isNotEmpty()) " class=\"$infoString\"" else ""
+            append("<code$infoStringHTML>")
+            inline.forEach { append("${it.render()}\n") }
+            append("</code>")
+            append("</pre>\n")
+        }
+        return builder.toString()
+    }
 
-        override fun parse(line: String, currentOpenBlock: Block, indentation: Int): CodeFence {
+    companion object : IStaticMatchable<CodeFence> {
+
+        override val canLazyContinue: Boolean = true
+        override val canBeConsecutive: Boolean = false
+        override val canInterruptParagraph: Boolean = true
+
+        override fun parse(line: String, currentOpenBlock: Block, indentation: Int, parent: Container): CodeFence {
             // must be able to match to parse the line
             assert(this.match(line, currentOpenBlock, indentation))
             val (codeFenceChar, codeFenceLength, codeFenceIndent) = getCodeFenceLengthIndent(line)
             //remove leading and trailing spaces and return a new paragraph
             val infoString = line.substring(codeFenceIndent + codeFenceLength)
-            return CodeFence(indentation, codeFenceChar, codeFenceIndent, codeFenceLength, infoString)
+            return CodeFence(indentation, codeFenceChar, codeFenceIndent, codeFenceLength, infoString, parent)
         }
 
         // this will be the match to open a new codeFence
@@ -66,7 +84,8 @@ class CodeFence private constructor(
                 leadingTildes > leadingBackTicks -> Pair('~', leadingTildes)
                 else -> Pair(' ', 0)
             }
-
+            // the label in a back ticked code fence may not contain a '`'
+            if(codeFenceChar == '`' && trimmed.substring(codeFenceLength).contains('`')) return Triple(' ', 0, 0)
             return Triple(codeFenceChar, codeFenceLength, indent)
         }
     }
