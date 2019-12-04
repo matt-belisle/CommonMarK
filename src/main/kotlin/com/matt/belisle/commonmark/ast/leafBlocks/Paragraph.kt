@@ -1,7 +1,8 @@
 package com.matt.belisle.commonmark.ast.leafBlocks
 
 import com.matt.belisle.commonmark.ast.Block
-import com.matt.belisle.commonmark.ast.IStaticMatchable
+import com.matt.belisle.commonmark.ast.ILazyMatch
+import com.matt.belisle.commonmark.ast.IStaticMatchableLeaf
 import com.matt.belisle.commonmark.ast.containerBlocks.Container
 import com.matt.belisle.commonmark.ast.inlineElements.InlineString
 import com.matt.belisle.commonmark.ast.countLeadingSpaces
@@ -14,10 +15,14 @@ import java.lang.StringBuilder
 // his also closes the paragraph
 
 //private as to only allow the parse function in companion to construct a block
-class Paragraph private constructor(parent: Container, indent: Int): Leaf(parent = parent, indent = indent){
+class Paragraph private constructor(parent: Container, indent: Int) : Leaf(parent = parent, indent = indent),
+    ILazyMatch {
+
+    override val canLazyContinue: Boolean = true
 
     var isSetext = false
     var setextLevel: Int = 0
+
     private constructor(line: String, indentation: Int, parent: Container) : this(parent, indentation) {
         // remove leading and trailing spaces
         inline.add(InlineString(line))
@@ -32,23 +37,22 @@ class Paragraph private constructor(parent: Container, indent: Int): Leaf(parent
         assert(match(line))
         val trimmed = line.trim()
         val (isSetext, setextChar) = isSetext(trimmed)
-        if(isSetext && line.countLeadingSpaces() < 4) {
+        if (isSetext && line.countLeadingSpaces() < 4) {
             this.close()
-            setextLevel = if(setextChar == '=') 1 else 2
+            setextLevel = if (setextChar == '=') 1 else 2
             this.isSetext = true
-        }
-        else inline.add(InlineString(trimmed))
+        } else inline.add(InlineString(trimmed))
     }
 
     override fun render(): String {
         val builder = StringBuilder()
-        val tag = if(isSetext) getHeadingLevel() else "p"
-        
-        with(builder){
+        val tag = if (isSetext) getHeadingLevel() else "p"
+
+        with(builder) {
             append("<$tag>")
             for (inlineString in inline) {
                 append(inlineString.render())
-                if(inlineString != inline.last()) append('\n')
+                if (inlineString != inline.last()) append('\n')
             }
             append("</$tag>\n")
         }
@@ -56,20 +60,25 @@ class Paragraph private constructor(parent: Container, indent: Int): Leaf(parent
         return builder.toString()
     }
 
-    private fun getHeadingLevel(): String = if(setextLevel == 1) "h1" else "h2"
+    private fun getHeadingLevel(): String = if (setextLevel == 1) "h1" else "h2"
 
-    private fun isSetext(line: String): Pair<Boolean,Char>{
+    private fun isSetext(line: String): Pair<Boolean, Char> {
         var char = line[0]
-        if(char != '-' && char != '=') return Pair(false, ' ')
+        if (char != '-' && char != '=') return Pair(false, ' ')
         line.forEach {
-            if(it != char) return Pair(false, ' ')
+            if (it != char) return Pair(false, ' ')
         }
         return Pair(true, char)
     }
 
-    companion object: IStaticMatchable<Paragraph>{
 
-        override val canLazyContinue: Boolean = true
+    override fun lazyMatch(line: String): Boolean {
+        //can lazy match on all but setext
+        return match(line) && !isSetext(line).first
+    }
+
+    companion object : IStaticMatchableLeaf<Paragraph> {
+
         override val canBeConsecutive: Boolean = false
         override val canInterruptParagraph: Boolean = false
 

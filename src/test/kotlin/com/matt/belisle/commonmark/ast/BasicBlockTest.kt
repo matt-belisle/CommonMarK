@@ -1,8 +1,7 @@
-package com.matt.belisle.commonmark.ast.leafBlocks
+package com.matt.belisle.commonmark.ast
 
 import com.matt.belisle.commonmark.TestCase
 import com.matt.belisle.commonmark.TestCases
-import com.matt.belisle.commonmark.ast.Document
 import com.matt.belisle.commonmark.parser.CommonMarkParser
 import junit.framework.Assert.assertFalse
 import org.junit.Assert
@@ -22,7 +21,9 @@ abstract class BasicBlockTest {
         var failed = false
         val parser = CommonMarkParser()
         tests.forEach {
-            val rendered = parser.parse(it.markdown.split('\n').dropLast(1)).render()
+
+            val parsed = parser.parse(it.markdown.split('\n').dropLast(1))
+            val rendered = parsed.render()
             //TODO for now keep here as just wanting to see block structure is correct, once inlines started do not have this
             try{
                 Assert.assertEquals(

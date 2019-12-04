@@ -1,13 +1,10 @@
 package com.matt.belisle.commonmark.ast.leafBlocks
 
-import com.matt.belisle.commonmark.TestCase
-import com.matt.belisle.commonmark.TestCases
+import com.matt.belisle.commonmark.ast.BasicBlockTest
 import com.matt.belisle.commonmark.ast.inlineElements.InlineString
 import com.matt.belisle.commonmark.parser.CommonMarkParser
-import org.junit.Test
-
 import org.junit.Assert.*
-import java.lang.AssertionError
+import org.junit.Test
 
 class ParagraphTest: BasicBlockTest() {
     val testString = "I am a Paragraph"

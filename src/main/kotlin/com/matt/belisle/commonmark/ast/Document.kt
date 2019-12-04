@@ -1,18 +1,25 @@
 package com.matt.belisle.commonmark.ast
 
 import com.matt.belisle.commonmark.ast.containerBlocks.Container
+import com.matt.belisle.commonmark.parser.ParsingException
 
 // represents the root node of the markdown AST, will be closed when the entire document is parsed
 // can never be continued or have anything after
 class Document : Container(parent = null) {
+    override fun dropPrefix(line: String): String {
+        return line
+    }
+
+    override val canLazyContinue: Boolean = false
+
 
     // can never make another root node, so no line can match it
-    override fun match(line: String) = false
+    override fun match(line: String): Boolean = true
 
     override fun render(): String {
         val builder = StringBuilder()
 
-        with(builder){
+        with(builder) {
             for (child in children) {
                 append(child.render())
             }
@@ -23,10 +30,10 @@ class Document : Container(parent = null) {
 
     fun getLastOpenBlock(): Block {
         var block: Block = this
-        while(block.isOpen()){
-            if(block is Container && block.getLastChild() != null && block.getLastChild()!!.isOpen()){
+        while (block.isOpen()) {
+            if (block is Container && block.getLastChild() != null && block.getLastChild()!!.isOpen()) {
                 block = block.getLastChild()!!
-            } else if(block.isOpen()){
+            } else if (block.isOpen()) {
                 return block
             }
         }
