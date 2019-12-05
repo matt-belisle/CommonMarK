@@ -1,12 +1,11 @@
 package com.matt.belisle.commonmark.ast.containerBlocks
 
-import com.matt.belisle.commonmark.ast.*
-import com.matt.belisle.commonmark.ast.leafBlocks.Leaf
-import java.lang.StringBuilder
+import com.matt.belisle.commonmark.ast.Block
+import com.matt.belisle.commonmark.ast.IStaticMatchableContainer
+import com.matt.belisle.commonmark.ast.countLeadingSpaces
+import com.matt.belisle.commonmark.ast.indentCheck
 
 class BlockQuote(parent: Container) : Container(parent = parent) {
-
-    override val canLazyContinue: Boolean = false
 
     // only call if matched
     override fun dropPrefix(line: String): String {
@@ -51,12 +50,14 @@ class BlockQuote(parent: Container) : Container(parent = parent) {
         override val canInterruptParagraph: Boolean = true
 
         override fun match(line: String, currentOpenBlock: Block, indentation: Int): Boolean {
+
             /* A block quote marker consists of 0-3 spaces of initial indent,
             plus (a) the character > together with a following space,
             or (b) a single character > not followed by a space.
             */
             // just for matching, this is fine to just make indentCheck and check leadingChar is a '>'
             //single character no space
+
             val leadingSpaces = line.countLeadingSpaces()
             return line.isNotEmpty() && leadingSpaces < indentCheck(indentation) &&  line[leadingSpaces] == '>'
         }
@@ -76,7 +77,5 @@ class BlockQuote(parent: Container) : Container(parent = parent) {
 
         fun dropMarker(line: String): String =
             if (line[0] == '>') line.drop(if (line.length > 1 && line[1] == ' ') 2 else 1) else line
-
-
     }
 }

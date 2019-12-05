@@ -3,7 +3,6 @@ package com.matt.belisle.commonmark.ast.leafBlocks
 import com.matt.belisle.commonmark.ast.Block
 import com.matt.belisle.commonmark.ast.IStaticMatchableLeaf
 import com.matt.belisle.commonmark.ast.containerBlocks.Container
-import com.matt.belisle.commonmark.ast.inlineElements.InlineString
 import java.lang.Exception
 
 // The paragraph block accepts any non empty line, as it is assumed if it would've matched any other block
@@ -12,8 +11,6 @@ import java.lang.Exception
 
 //private as to only allow the parse function in companion to construct a block
 class BlankLine private constructor(parent: Container, indent: Int) : Leaf(parent = parent, indent = indent) {
-
-    override val canLazyContinue: Boolean = false
 
     private constructor(parent: Container) : this(parent = parent, indent = 0) {
         // no content in a blank line

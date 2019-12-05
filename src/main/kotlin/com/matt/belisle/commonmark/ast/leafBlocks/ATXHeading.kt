@@ -7,8 +7,6 @@ import com.matt.belisle.commonmark.ast.inlineElements.InlineString
 class ATXHeading private constructor(val headingLevel: Int, indentation: Int, parent: Container) :
     Leaf(parent = parent, indent = indentation) {
 
-    override val canLazyContinue: Boolean = false
-
     // you cannot append a line to an ATXHeading so this will error out the parser
     override fun appendLine(line: String) {
         throw Exception("Cannot append a line to an ATX HEADING")

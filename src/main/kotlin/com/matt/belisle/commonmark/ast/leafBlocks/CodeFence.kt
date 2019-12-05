@@ -19,8 +19,6 @@ class CodeFence private constructor(
     parent: Container
 ) : Leaf(indent = indent, parent = parent) {
 
-    override val canLazyContinue: Boolean = false
-
     //match is just anything until it detects the end
 
     override fun appendLine(line: String) {

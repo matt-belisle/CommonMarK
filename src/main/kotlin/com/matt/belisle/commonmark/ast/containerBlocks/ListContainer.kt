@@ -5,8 +5,6 @@ class ListContainer(parent: Container) : Container(parent = parent) {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
-    override val canLazyContinue: Boolean = false
-
     //TODO Implement this is placeholder for various matching logic
 //    override val canLazyContinue: Boolean = true
 //    override val canBeConsecutive: Boolean = false

@@ -7,8 +7,6 @@ abstract class Block(public val parent: Container?, public val indent: Int) : IM
     //if this is closed then nothing new can happen to it
     private var isOpen: Boolean = true
 
-    abstract val canLazyContinue: Boolean
-
 
     open fun close() {
         isOpen = false

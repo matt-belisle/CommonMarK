@@ -7,8 +7,6 @@ import com.matt.belisle.commonmark.ast.inlineElements.InlineString
 class ThematicBreak private constructor(val thematicBreakChar: Char, parent: Container, indentation: Int) :
     Leaf(parent, indentation) {
 
-    override val canLazyContinue: Boolean = false
-
     //cannot append anything to a thematic break so this will throw an error
     override fun appendLine(line: String) {
         throw Exception("Cannot append a line to a Thematic Break")

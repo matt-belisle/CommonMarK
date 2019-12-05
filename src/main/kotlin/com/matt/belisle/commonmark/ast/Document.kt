@@ -1,7 +1,6 @@
 package com.matt.belisle.commonmark.ast
 
 import com.matt.belisle.commonmark.ast.containerBlocks.Container
-import com.matt.belisle.commonmark.parser.ParsingException
 
 // represents the root node of the markdown AST, will be closed when the entire document is parsed
 // can never be continued or have anything after
@@ -9,8 +8,6 @@ class Document : Container(parent = null) {
     override fun dropPrefix(line: String): String {
         return line
     }
-
-    override val canLazyContinue: Boolean = false
 
 
     // can never make another root node, so no line can match it

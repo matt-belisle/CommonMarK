@@ -10,8 +10,6 @@ class IndentedCodeBlock(indent: Int, parent: Container) : Leaf(indent = indent, 
 
     private var lastNonBlankLine: Int = -1
 
-    override val canLazyContinue: Boolean = false
-
     override fun match(line: String): Boolean {
         return super.match(line) && (line.countLeadingSpaces() >= indentCheck(indent) || line.isBlank())
     }

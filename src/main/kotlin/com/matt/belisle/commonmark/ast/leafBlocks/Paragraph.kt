@@ -18,8 +18,6 @@ import java.lang.StringBuilder
 class Paragraph private constructor(parent: Container, indent: Int) : Leaf(parent = parent, indent = indent),
     ILazyMatch {
 
-    override val canLazyContinue: Boolean = true
-
     var isSetext = false
     var setextLevel: Int = 0
 
