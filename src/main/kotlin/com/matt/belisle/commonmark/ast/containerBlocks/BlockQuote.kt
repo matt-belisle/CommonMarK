@@ -5,11 +5,10 @@ import com.matt.belisle.commonmark.ast.IStaticMatchableContainer
 import com.matt.belisle.commonmark.ast.countLeadingSpaces
 import com.matt.belisle.commonmark.ast.indentCheck
 
-class BlockQuote(parent: Container) : Container(parent = parent) {
+class BlockQuote(parent: Container) : Container(parent = parent, indent = 0) {
 
     // only call if matched
     override fun dropPrefix(line: String): String {
-        assert(match(line))
         return dropMarker(line.trim())
     }
 
@@ -69,9 +68,7 @@ class BlockQuote(parent: Container) : Container(parent = parent) {
             parent: Container
         ): Pair<BlockQuote, String> {
             assert(match(line, currentOpenBlock, indentation))
-
-            val trimmed = line.trimStart()
-            return Pair(BlockQuote(parent), dropMarker(line.trim()))
+            return Pair(BlockQuote(parent), dropMarker(line.trimStart()))
         }
 
 

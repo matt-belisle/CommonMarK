@@ -4,6 +4,7 @@ import CodeFence
 import com.matt.belisle.commonmark.ast.*
 import com.matt.belisle.commonmark.ast.containerBlocks.BlockQuote
 import com.matt.belisle.commonmark.ast.containerBlocks.Container
+import com.matt.belisle.commonmark.ast.containerBlocks.ListContainer
 import com.matt.belisle.commonmark.ast.leafBlocks.*
 import kotlin.reflect.KClass
 
@@ -25,7 +26,7 @@ class CommonMarkParser(
             CodeFence.Companion,
             Paragraph.Companion,
             BlankLine.Companion
-        ), listOf(BlockQuote.Companion)
+        ), listOf(BlockQuote.Companion, ListContainer.Companion)
     )
 
     fun parse(data: List<String>): Document {

@@ -4,7 +4,7 @@ import com.matt.belisle.commonmark.ast.containerBlocks.Container
 
 // represents the root node of the markdown AST, will be closed when the entire document is parsed
 // can never be continued or have anything after
-class Document : Container(parent = null) {
+class Document : Container(parent = null, indent = 0) {
     override fun dropPrefix(line: String): String {
         return line
     }

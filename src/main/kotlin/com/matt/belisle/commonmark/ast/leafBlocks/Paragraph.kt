@@ -1,11 +1,8 @@
 package com.matt.belisle.commonmark.ast.leafBlocks
 
-import com.matt.belisle.commonmark.ast.Block
-import com.matt.belisle.commonmark.ast.ILazyMatch
-import com.matt.belisle.commonmark.ast.IStaticMatchableLeaf
+import com.matt.belisle.commonmark.ast.*
 import com.matt.belisle.commonmark.ast.containerBlocks.Container
 import com.matt.belisle.commonmark.ast.inlineElements.InlineString
-import com.matt.belisle.commonmark.ast.countLeadingSpaces
 import java.lang.StringBuilder
 
 // The paragraph block accepts any non empty line, as it is assumed if it would've matched any other block
@@ -48,10 +45,7 @@ class Paragraph private constructor(parent: Container, indent: Int) : Leaf(paren
 
         with(builder) {
             append("<$tag>")
-            for (inlineString in inline) {
-                append(inlineString.render())
-                if (inlineString != inline.last()) append('\n')
-            }
+            append(renderInline())
             append("</$tag>\n")
         }
 
@@ -71,11 +65,13 @@ class Paragraph private constructor(parent: Container, indent: Int) : Leaf(paren
 
 
     override fun lazyMatch(line: String): Boolean {
-        //can lazy match on all but setext
-        return match(line) && !isSetext(line).first
+        //can lazy match only if the paragraph would not be interrupted, including setexts
+        return match(line) && !isSetext(line).first && !canInterrupt.any { it.match(line, this, 0) }
     }
 
     companion object : IStaticMatchableLeaf<Paragraph> {
+
+        var canInterrupt: List<IStaticMatchable<out Block>> = emptyList()
 
         override val canBeConsecutive: Boolean = false
         override val canInterruptParagraph: Boolean = false

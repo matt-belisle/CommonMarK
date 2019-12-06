@@ -3,6 +3,7 @@ package com.matt.belisle.commonmark.parser
 import com.matt.belisle.commonmark.ast.*
 import com.matt.belisle.commonmark.ast.containerBlocks.BlockQuote
 import com.matt.belisle.commonmark.ast.containerBlocks.Container
+import com.matt.belisle.commonmark.ast.containerBlocks.ListContainer
 import com.matt.belisle.commonmark.ast.leafBlocks.*
 
 
@@ -22,7 +23,7 @@ class BlockParser(
             CodeFence.Companion,
             Paragraph.Companion,
             BlankLine.Companion
-        ), listOf(BlockQuote.Companion)
+        ), listOf(BlockQuote.Companion, ListContainer.Companion)
     )
 
 
@@ -30,6 +31,9 @@ class BlockParser(
     private val allBlocks: List<IStaticMatchable<out Block>> = containers.plus(leaves)
     private val canInterruptParagraph = allBlocks.filter { it.canInterruptParagraph }
 
+    init {
+        Paragraph.canInterrupt = canInterruptParagraph
+    }
 
     fun parse(data: List<String>): Document {
         val document = Document()
@@ -48,9 +52,15 @@ class BlockParser(
                     while (currentOpenBlock is Container && currentOpenBlock.isOpen()) {
                         if (currentOpenBlock.match(currentLine)) {
                             currentLine = currentOpenBlock.dropPrefix(currentLine)
+                            // let the container do some internal block creation if necessary (lists and listItems for example)
+                            if(currentOpenBlock is IMetaContainer){
+                                currentLine = currentOpenBlock.appendLine(currentLine)
+                                // must open a new container...
+                                currentOpenBlock = currentOpenBlock.getLastChild() as Container
+                            }
                             // make sure that there is a following last block ( this will only happen if the container is empty )
                             val nextChild = currentOpenBlock.getLastChild() ?: break
-                            currentOpenBlock = currentOpenBlock.getLastChild()
+                            currentOpenBlock = nextChild
 
                         } else {
                             // close the tree including the currently checked block as it is no longer matching
@@ -62,7 +72,7 @@ class BlockParser(
                 }
             }
             // final check for leaves not being matched
-                if(!currentOpenBlock!!.match(line)){
+                if(!currentOpenBlock!!.match(currentLine)){
                     currentOpenBlock.close()
                     currentOpenBlock = currentOpenBlock.parent
                 }
@@ -92,8 +102,19 @@ class BlockParser(
                         parentBlock
                     )
                     parentBlock.addChild(containerBlock)
-                    //finish parsing the line
-                    parseIntoNewBlock(restOfLine, containerBlock as Container)
+                    // if the parentBlock is literally a dummy container (like a list)
+                    //it may have built an internal child block already
+                    val lastChild = (containerBlock as Container).getLastChild()
+                    if(lastChild != null && lastChild.isOpen()){
+                        if(lastChild is Leaf){
+                            parseIntoOpenLeaf(restOfLine, lastChild)
+                        } else{
+                            parseIntoNewBlock(restOfLine, lastChild as Container)
+                        }
+                        return
+                    }
+                    //finish parsing the line with the new container
+                    parseIntoNewBlock(restOfLine, containerBlock)
                 } else{
                     // must be a leaf
                     parentBlock.addChild((blockType as IStaticMatchableLeaf).parse(line, parentBlock, parentBlock.indent, parentBlock))

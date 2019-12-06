@@ -11,21 +11,28 @@ import java.lang.Exception
 
 //private as to only allow the parse function in companion to construct a block
 class BlankLine private constructor(parent: Container, indent: Int) : Leaf(parent = parent, indent = indent) {
+    var numberOfLines: Int = 1
 
     private constructor(parent: Container) : this(parent = parent, indent = 0) {
         // no content in a blank line
-        // blank line is always closed
-        this.close()
     }
 
     override fun appendLine(line: String) {
-        throw Exception("Tried to append a line to a blank block")
+        if(line.isNotEmpty()){
+            throw Exception("Tried to put a non empty line in a blank line block")
+        }
+        // do nothing as line is empty this doesnt render
+        numberOfLines++
+    }
+
+    override fun match(line: String): Boolean {
+        return line.isBlank()
     }
 
     companion object : IStaticMatchableLeaf<BlankLine> {
 
         override val canBeConsecutive: Boolean = false
-        override val canInterruptParagraph: Boolean = false
+        override val canInterruptParagraph: Boolean = true
 
         override fun parse(line: String, currentOpenBlock: Block, indentation: Int, parent: Container): BlankLine {
             // must be able to match to parse the line
