@@ -67,12 +67,13 @@ class BlockParser(
                             currentOpenBlock.close()
                             // use the last matched block for the parent
                             currentOpenBlock = currentOpenBlock.parent
+                            break
                         }
                     }
                 }
             }
             // final check for leaves not being matched
-                if(!currentOpenBlock!!.match(currentLine)){
+                if(currentOpenBlock is Leaf && !currentOpenBlock.match(currentLine)){
                     currentOpenBlock.close()
                     currentOpenBlock = currentOpenBlock.parent
                 }
@@ -145,9 +146,20 @@ class BlockParser(
                             leaf.indent,
                             parent
                         )
+                        // if the parentBlock is literally a dummy container (like a list)
+                        //it may have built an internal child block already
+                        val lastChild = (containerBlock as Container).getLastChild()
+                        if(lastChild != null && lastChild.isOpen()) {
+                            if (lastChild is Leaf) {
+                                parseIntoOpenLeaf(restOfLine, lastChild)
+                            } else {
+                                parseIntoNewBlock(restOfLine, lastChild as Container)
+                            }
+                        } else{
+                            parseIntoNewBlock(restOfLine, containerBlock)
+                        }
                         parent.addChild(containerBlock)
-                        //consume the rest of the line
-                        parseIntoNewBlock(restOfLine, containerBlock as Container)
+                        return
                     }
                     // we must be done as we matched and consumed the rest of it
                     return

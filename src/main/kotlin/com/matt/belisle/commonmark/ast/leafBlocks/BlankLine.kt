@@ -18,7 +18,7 @@ class BlankLine private constructor(parent: Container, indent: Int) : Leaf(paren
     }
 
     override fun appendLine(line: String) {
-        if(line.isNotEmpty()){
+        if(line.isNotBlank()){
             throw Exception("Tried to put a non empty line in a blank line block")
         }
         // do nothing as line is empty this doesnt render

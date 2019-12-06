@@ -20,19 +20,31 @@ class ListItem(parent: Container, indent: Int) : Container(parent = parent, inde
         val builder = StringBuilder()
         //TODO when inlines implemented need to change to account for tight/loose
         //only one paragraph and the rest blank for special print
-        if(children.count { it is Paragraph } <= 1 && children.count{it is Paragraph || it is BlankLine} == children.size) {
-            val para = children.find { it is Paragraph }
-            return "<li>${(para!! as Paragraph).renderInline()}</li>\n"
-        }
+//        if(children.count { it is Paragraph } <= 1 && children.count{it is Paragraph || it is BlankLine} == children.size) {
+//            val para = children.find { it is Paragraph }
+//            return "<li>${(para!! as Paragraph).renderInline()}</li>\n"
+//        }
         with(builder) {
-            append("<li>\n")
-            children.forEach { append( it.render() ) }
+            append("<li>")
+            children.forEach {
+                if(loose && it is Paragraph){
+                    append(it.renderInline())
+                } else {
+                    val render = it.render()
+                    if(render.isNotEmpty()) {
+                        if(render.first() != '\n' && last() != '\n')
+                        append('\n')
+                        append(it.render())
+                    }
+                }
+            }
             append("</li>\n")
         }
         return builder.toString()
     }
 
     override fun dropPrefix(line: String): String {
+        return line
         return if(line.countLeadingSpaces() >= indent)
             line.drop(indent)
         else

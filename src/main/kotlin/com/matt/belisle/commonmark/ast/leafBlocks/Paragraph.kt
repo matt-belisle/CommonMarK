@@ -2,6 +2,7 @@ package com.matt.belisle.commonmark.ast.leafBlocks
 
 import com.matt.belisle.commonmark.ast.*
 import com.matt.belisle.commonmark.ast.containerBlocks.Container
+import com.matt.belisle.commonmark.ast.containerBlocks.ListContainer
 import com.matt.belisle.commonmark.ast.inlineElements.InlineString
 import java.lang.StringBuilder
 
@@ -18,6 +19,8 @@ class Paragraph private constructor(parent: Container, indent: Int) : Leaf(paren
     var isSetext = false
     var setextLevel: Int = 0
 
+    var ignoreSetext = false
+
     private constructor(line: String, indentation: Int, parent: Container) : this(parent, indentation) {
         // remove leading and trailing spaces
         inline.add(InlineString(line))
@@ -32,11 +35,12 @@ class Paragraph private constructor(parent: Container, indent: Int) : Leaf(paren
         assert(match(line))
         val trimmed = line.trim()
         val (isSetext, setextChar) = isSetext(trimmed)
-        if (isSetext && line.countLeadingSpaces() < 4) {
+        if (!ignoreSetext && isSetext && line.countLeadingSpaces() < 4) {
             this.close()
             setextLevel = if (setextChar == '=') 1 else 2
             this.isSetext = true
         } else inline.add(InlineString(trimmed))
+        ignoreSetext = false
     }
 
     override fun render(): String {
@@ -55,6 +59,7 @@ class Paragraph private constructor(parent: Container, indent: Int) : Leaf(paren
     private fun getHeadingLevel(): String = if (setextLevel == 1) "h1" else "h2"
 
     private fun isSetext(line: String): Pair<Boolean, Char> {
+        if(line.isEmpty()) return Pair(false, ' ')
         var char = line[0]
         if (char != '-' && char != '=') return Pair(false, ' ')
         line.forEach {
@@ -66,7 +71,14 @@ class Paragraph private constructor(parent: Container, indent: Int) : Leaf(paren
 
     override fun lazyMatch(line: String): Boolean {
         //can lazy match only if the paragraph would not be interrupted, including setexts
-        return match(line) && !isSetext(line).first && !canInterrupt.any { it.match(line, this, 0) }
+        val setext = isSetext(line)
+        // we can ignore the setext on a lazy match iff the character is an '=' sign
+        if(setext.first && setext.second == '='){
+            ignoreSetext = true
+        }
+        return match(line) &&
+                (!setext.first || (setext.first && setext.second == '='))
+                && !canInterrupt.any { it.match(line, this, 0) }
     }
 
     companion object : IStaticMatchableLeaf<Paragraph> {

@@ -72,9 +72,9 @@ class ListContainerTest : BasicBlockTest() {
     }
     @Test
     fun specTest(){
-        specTest(230)
+//        specTest(295)
         specTest("List items")
-        specTest("Lists")
+//        specTest("Lists")
     }
 
 }

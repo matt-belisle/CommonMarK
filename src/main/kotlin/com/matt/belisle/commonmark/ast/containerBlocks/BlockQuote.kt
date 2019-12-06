@@ -9,7 +9,7 @@ class BlockQuote(parent: Container) : Container(parent = parent, indent = 0) {
 
     // only call if matched
     override fun dropPrefix(line: String): String {
-        return dropMarker(line.trim())
+        return dropMarker(line)
     }
 
     override fun render(): String {
@@ -58,7 +58,7 @@ class BlockQuote(parent: Container) : Container(parent = parent, indent = 0) {
             //single character no space
 
             val leadingSpaces = line.countLeadingSpaces()
-            return line.isNotEmpty() && leadingSpaces < indentCheck(indentation) &&  line[leadingSpaces] == '>'
+            return line.isNotBlank() && leadingSpaces < indentCheck(indentation) &&  line[leadingSpaces] == '>'
         }
 
         override fun parse(
@@ -72,7 +72,10 @@ class BlockQuote(parent: Container) : Container(parent = parent, indent = 0) {
         }
 
 
-        fun dropMarker(line: String): String =
-            if (line[0] == '>') line.drop(if (line.length > 1 && line[1] == ' ') 2 else 1) else line
+        fun dropMarker(line: String): String {
+            val trimmed = line.trimStart()
+            // if we can match a blockQuote marker then remove it, if not return the line as was
+            return if (line.countLeadingSpaces() < 4 && trimmed[0] == '>') trimmed.drop(if (line.length > 1 && line[1] == ' ') 2 else 1) else line
+        }
     }
 }

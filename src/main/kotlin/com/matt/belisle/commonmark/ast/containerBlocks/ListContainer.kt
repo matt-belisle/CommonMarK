@@ -8,9 +8,9 @@ import java.lang.StringBuilder
 import kotlin.math.log10
 
 
-private enum class MarkerType {NUMERIC_DOT, NUMERIC_BRACKET, PLUS, MINUS, STAR}
-private data class NumericListMatch(val match: Boolean, val marker: MarkerType, val startingNumber: Int, val restOfLine: String)
-private data class BulletListMatch(val match: Boolean, val marker: MarkerType, val restOfLine: String)
+enum class MarkerType {NUMERIC_DOT, NUMERIC_BRACKET, PLUS, MINUS, STAR}
+data class NumericListMatch(val match: Boolean, val marker: MarkerType, val startingNumber: Int, val restOfLine: String)
+data class BulletListMatch(val match: Boolean, val marker: MarkerType, val restOfLine: String)
 
 class ListContainer private constructor(parent: Container, private val startingNumber: Int, private val markerType: MarkerType, indent: Int) :
     Container(parent = parent, indent = 0), IMetaContainer{
@@ -21,12 +21,15 @@ class ListContainer private constructor(parent: Container, private val startingN
         // leading zeros in numeric do not affect indent
         addChild(ListItem(this, indent))
     }
+
     // no prefix on the list itself, this is just a dummy container
     override fun dropPrefix(line: String) = line
 
 
     override fun match(line: String): Boolean {
+        if(lazyContinue(line)) return true
         // look for a new listItem, or check the last listItem for matching
+        if(checkLastChild(line)) return true
         // if new listItem call appendLine maybe
         val (match, marker) = matchWithData(line, this, indent)
         if(match){
@@ -41,6 +44,7 @@ class ListContainer private constructor(parent: Container, private val startingN
         return children.last().match(line)
     }
     override fun appendLine(line: String): String {
+        if(checkLastChild(line)) return line
         val trimmed = line.trimStart()
         val leadingWhitespace = line.countLeadingSpaces()
 
@@ -101,11 +105,18 @@ class ListContainer private constructor(parent: Container, private val startingN
         return builder.toString()
     }
 
+    private fun checkLastChild(line: String): Boolean{
+        val lastChild = getLastChild()
+        return lastChild != null && lastChild.isOpen() && lastChild.match(line)
+    }
+
     companion object : IStaticMatchableContainer<ListContainer> {
         override fun match(line: String, currentOpenBlock: Block, indentation: Int): Boolean {
+            if(line.countLeadingSpaces() > 3) return false
             return matchWithData(line, currentOpenBlock, indentation).first
         }
         private fun matchWithData(line: String, currentOpenBlock: Block, indentation: Int): Pair<Boolean, MarkerType> {
+            if(indentation + 3 < line.countLeadingSpaces()) return Pair(false, MarkerType.NUMERIC_BRACKET)
             val (matchNumeric, markerNumeric) = numericListMatch(line.trimStart(), currentOpenBlock)
             val (matchBullet, markerBullet) = bulletListMatch(line.trimStart() , currentOpenBlock)
 
@@ -155,7 +166,7 @@ class ListContainer private constructor(parent: Container, private val startingN
 
         // returns in order, is it a match, does it end in a '.' or ')'
         // to be a numericListMarker
-        private fun numericListMatch(line: String, currentOpenBlock: Block): NumericListMatch{
+        fun numericListMatch(line: String, currentOpenBlock: Block): NumericListMatch{
             val falseReturn = NumericListMatch(false, MarkerType.NUMERIC_DOT, 0, "")
             var endsInDot = MarkerType.NUMERIC_DOT
             val builder = StringBuilder()
@@ -175,7 +186,9 @@ class ListContainer private constructor(parent: Container, private val startingN
                     return falseReturn
                 }
             }
+            if(builder.isEmpty()) return falseReturn
             val startingNumberString = builder.toString()
+            val startingNumber = startingNumberString.toInt()
             // must have been long enough to contain '.' or ')' after numeric
             if(line.length == startingNumberString.length) return falseReturn
             // drop the numericMatch, the following '.', ')'
@@ -183,18 +196,22 @@ class ListContainer private constructor(parent: Container, private val startingN
             // numeric must be less than 10 digits
             // it can be an empty list item as long as it is not interrupting a paragraph
             // the following character if it is not blank must be a space
-            if(startingNumberString.length >= 10 ||  (currentOpenBlock is Paragraph && droppedMatch.isBlank()) || (droppedMatch.isNotBlank() && droppedMatch[0] != ' ' )){
+            // this may not interrupt a paragraph if starting number > 1
+            if(startingNumberString.length >= 10
+                ||  (currentOpenBlock is Paragraph && droppedMatch.isBlank())
+                || (droppedMatch.isNotBlank() && droppedMatch[0] != ' ' )
+                || (currentOpenBlock is Paragraph && startingNumber != 1 )){
                 return falseReturn
             }
 
             return NumericListMatch(true,
                 endsInDot,
-                startingNumberString.toInt(),
+                startingNumber,
                 droppedMatch)
         }
 
         // A bullet list marker is a -, +, or * character
-        private fun bulletListMatch(line: String, currentOpenBlock: Block): BulletListMatch{
+        fun bulletListMatch(line: String, currentOpenBlock: Block): BulletListMatch{
             val falseReturn = BulletListMatch(false, MarkerType.NUMERIC_DOT, "")
             if(line.isNotEmpty()){
                 val dropped = line.drop(1)
