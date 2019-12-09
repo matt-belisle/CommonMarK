@@ -6,9 +6,9 @@ import org.junit.Test
 class ListContainerTest : BasicBlockTest() {
     @Test
     fun specTest(){
-        specTest(276)
-//        specTest("List items")
-        specTest("Lists")
+        specTest(253)
+        specTest("List items")
+//        specTest("Lists")
     }
 
 }

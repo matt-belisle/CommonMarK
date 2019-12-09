@@ -4,7 +4,7 @@ import com.matt.belisle.commonmark.ast.*
 import com.matt.belisle.commonmark.ast.leafBlocks.BlankLine
 import com.matt.belisle.commonmark.ast.leafBlocks.Paragraph
 import com.matt.belisle.commonmark.ast.leafBlocks.ThematicBreak
-
+import kotlin.math.abs
 
 
 enum class MarkerType {NUMERIC_DOT, NUMERIC_BRACKET, PLUS, MINUS, STAR}
@@ -116,15 +116,17 @@ class ListItem private constructor(parent: Container, val startingNumber: Int, v
             // drop the numericMatch, the following '.', ')'
             val droppedMatch = line.drop(startingNumberString.length + 1)
             // numeric must be less than 10 digits
-            // it can be an empty list item as long as it is not interrupting a paragraph
-            // the following character if it is not blank must be a space
-            // this may not interrupt a paragraph if starting number > 1
-            if(startingNumberString.length >= 10
-                ||  (currentOpenBlock is Paragraph && ((droppedMatch.isBlank() && (startingNumber != 1 && currentOpenBlock.indent <= line.countLeadingSpaces())) || currentOpenBlock.indent <= line.countLeadingSpaces() ))
-                || (droppedMatch.isNotBlank() && droppedMatch[0] != ' ' )){
+            if(startingNumberString.length >= 10) return falseReturn
+            if(currentOpenBlock is Paragraph){
+                // cannot append a new list item if this would be considered part of the paragraph
+                // which means the indent on the number must be less
+                if(droppedMatch.isBlank() && !paragraphContinueCheck(currentOpenBlock, line.countLeadingSpaces())){
+                    return falseReturn
+                }
+            }
+            if(droppedMatch.isNotBlank() && droppedMatch[0] != ' ' ){
                 return falseReturn
             }
-
             return NumericListMatch(true,
                 endsInDot,
                 startingNumber,
@@ -196,6 +198,18 @@ class ListItem private constructor(parent: Container, val startingNumber: Int, v
             }
             // shouldn't ever get here so crash if so
             throw Exception("Invalid List Marker")
+        }
+
+        // will check if we can match as the next listItem in the list or not
+        private fun paragraphContinueCheck(paragraph: Paragraph, indent: Int): Boolean {
+            var block: Block = paragraph
+            while (block.parent != null){
+                block = block.parent!!
+                if(block is ListItem){
+                    return abs(block.indent - indent) < 4
+                }
+            }
+            return block is ListItem && block.indent <= indent
         }
     }
 }
