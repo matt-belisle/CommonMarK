@@ -8,7 +8,7 @@ import com.matt.belisle.commonmark.ast.leafBlocks.Leaf
 
 abstract class Container(parent: Container?, indent: Int) : Block(parent = parent, indent = indent) {
 
-    internal val children: MutableList<Block> = mutableListOf()
+    val children: MutableList<Block> = mutableListOf()
 
     fun getLastChild(): Block? = if (children.size > 0) children.last() else null
 
@@ -35,5 +35,9 @@ abstract class Container(parent: Container?, indent: Int) : Block(parent = paren
     override fun close() {
         closeAllChildren()
         super.close()
+    }
+
+    override fun equals(other: Any?): Boolean {
+        return if(other is Container) serialNumber == other.serialNumber && children == other.children else false
     }
 }

@@ -27,4 +27,9 @@ abstract class Leaf(parent: Container, indent: Int) : Block(parent = parent, ind
     // leaf block consumes lines so if we consume return an empty string -- this should not ever be used
     internal fun returnLineIfFalse(boolean: Boolean, line: String) =
         if (boolean) Pair(boolean, "") else Pair(boolean, line)
+
+
+    override fun equals(other: Any?): Boolean {
+        return if(other is Leaf) serialNumber == other.serialNumber && inline == other.inline else false
+    }
 }

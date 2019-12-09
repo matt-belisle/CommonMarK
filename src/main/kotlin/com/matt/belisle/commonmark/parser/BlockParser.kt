@@ -3,8 +3,9 @@ package com.matt.belisle.commonmark.parser
 import com.matt.belisle.commonmark.ast.*
 import com.matt.belisle.commonmark.ast.containerBlocks.BlockQuote
 import com.matt.belisle.commonmark.ast.containerBlocks.Container
-import com.matt.belisle.commonmark.ast.containerBlocks.ListContainer
+import com.matt.belisle.commonmark.ast.containerBlocks.ListItem
 import com.matt.belisle.commonmark.ast.leafBlocks.*
+import com.matt.belisle.commonmark.visitors.ListVisitor
 
 
 // leaves are the leaves that can be parsed to, blocks in descending order of precedence,
@@ -23,7 +24,7 @@ class BlockParser(
             CodeFence.Companion,
             Paragraph.Companion,
             BlankLine.Companion
-        ), listOf(BlockQuote.Companion, ListContainer.Companion)
+        ), listOf(BlockQuote.Companion, ListItem.Companion)
     )
 
 
@@ -52,12 +53,6 @@ class BlockParser(
                     while (currentOpenBlock is Container && currentOpenBlock.isOpen()) {
                         if (currentOpenBlock.match(currentLine)) {
                             currentLine = currentOpenBlock.dropPrefix(currentLine)
-                            // let the container do some internal block creation if necessary (lists and listItems for example)
-                            if(currentOpenBlock is IMetaContainer){
-                                currentLine = currentOpenBlock.appendLine(currentLine)
-                                // must open a new container...
-                                currentOpenBlock = currentOpenBlock.getLastChild() as Container
-                            }
                             // make sure that there is a following last block ( this will only happen if the container is empty )
                             val nextChild = currentOpenBlock.getLastChild() ?: break
                             currentOpenBlock = nextChild
@@ -88,7 +83,7 @@ class BlockParser(
                 }
             }
         document.close()
-        return document
+        return ListVisitor().simplify(document) as Document
     }
 
     private fun parseIntoNewBlock(line: String, parentBlock: Container){
@@ -103,19 +98,8 @@ class BlockParser(
                         parentBlock
                     )
                     parentBlock.addChild(containerBlock)
-                    // if the parentBlock is literally a dummy container (like a list)
-                    //it may have built an internal child block already
-                    val lastChild = (containerBlock as Container).getLastChild()
-                    if(lastChild != null && lastChild.isOpen()){
-                        if(lastChild is Leaf){
-                            parseIntoOpenLeaf(restOfLine, lastChild)
-                        } else{
-                            parseIntoNewBlock(restOfLine, lastChild as Container)
-                        }
-                        return
-                    }
                     //finish parsing the line with the new container
-                    parseIntoNewBlock(restOfLine, containerBlock)
+                    parseIntoNewBlock(restOfLine, containerBlock as Container)
                 } else{
                     // must be a leaf
                     parentBlock.addChild((blockType as IStaticMatchableLeaf).parse(line, parentBlock, parentBlock.indent, parentBlock))
@@ -133,10 +117,10 @@ class BlockParser(
         if (leaf is Paragraph) {
 
             for (blockType in canInterruptParagraph) {
-                if (blockType.match(line, leaf, leaf.indent)) {
+                if (blockType.match(line, leaf, leaf.parent!!.indent)) {
                     //paragraph was interrupted, so close it
                     leaf.close()
-                    val parent = leaf.parent ?: document
+                    val parent = leaf.parent
                     if (blockType is IStaticMatchableLeaf) {
                         parent.addChild(blockType.parse(line, leaf, leaf.indent, parent))
                     } else {

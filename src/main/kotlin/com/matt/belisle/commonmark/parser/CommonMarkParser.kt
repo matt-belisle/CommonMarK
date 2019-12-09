@@ -5,8 +5,8 @@ import com.matt.belisle.commonmark.ast.*
 import com.matt.belisle.commonmark.ast.containerBlocks.BlockQuote
 import com.matt.belisle.commonmark.ast.containerBlocks.Container
 import com.matt.belisle.commonmark.ast.containerBlocks.ListContainer
+import com.matt.belisle.commonmark.ast.containerBlocks.ListItem
 import com.matt.belisle.commonmark.ast.leafBlocks.*
-import kotlin.reflect.KClass
 
 
 // leaves are the leaves that can be parsed to, blocks in descending order of precedence,
@@ -26,7 +26,7 @@ class CommonMarkParser(
             CodeFence.Companion,
             Paragraph.Companion,
             BlankLine.Companion
-        ), listOf(BlockQuote.Companion, ListContainer.Companion)
+        ), listOf(BlockQuote.Companion, ListItem.Companion)
     )
 
     fun parse(data: List<String>): Document {
