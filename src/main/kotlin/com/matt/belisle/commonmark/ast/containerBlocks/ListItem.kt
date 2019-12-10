@@ -24,7 +24,6 @@ class ListItem private constructor(parent: Container, val startingNumber: Int, v
             return false
         }
         return line.countLeadingSpaces() >= indent ||
-                lazyContinue(line) ||
                 line.isBlank()
     }
 
@@ -34,7 +33,9 @@ class ListItem private constructor(parent: Container, val startingNumber: Int, v
         // if any of the not first children are blank lines then we have a loose list, the
         // list container itself will check if the last of any of the non-terminal list items
         // end in a blank line
-        loose = children.drop(1).any { it is BlankLine}
+        val leadingBlankLine = if(children.first() is BlankLine) 1 else 0
+        val trailingBlankLine = if(children.last() is BlankLine && children.size > 1 ) 1 else 0
+        loose = children.drop(leadingBlankLine).dropLast(trailingBlankLine).any { it is BlankLine}
     }
 
     override fun render(): String {
@@ -73,8 +74,14 @@ class ListItem private constructor(parent: Container, val startingNumber: Int, v
         private fun matchWithData(line: String, currentOpenBlock: Block, indentation: Int): Pair<Boolean, MarkerType> {
             // cannot be interpreted as a indented code block
             if(indentCheck(indentation) < line.countLeadingSpaces()) return Pair(false, MarkerType.NUMERIC_BRACKET)
-            val (matchNumeric, markerNumeric) = numericListMatch(line.trimStart(), currentOpenBlock)
+            val (matchNumeric, markerNumeric, startingNumber) = numericListMatch(line.trimStart(), currentOpenBlock)
             val (matchBullet, markerBullet) = bulletListMatch(line.trimStart() , currentOpenBlock)
+
+            if(currentOpenBlock is Paragraph){
+                if(matchNumeric && startingNumber != 1){
+                    return Pair(false, MarkerType.NUMERIC_BRACKET)
+                }
+            }
 
             // When both a thematic break and a list item are possible interpretations of a line,
             // the thematic break takes precedence
@@ -117,12 +124,10 @@ class ListItem private constructor(parent: Container, val startingNumber: Int, v
             val droppedMatch = line.drop(startingNumberString.length + 1)
             // numeric must be less than 10 digits
             if(startingNumberString.length >= 10) return falseReturn
-            if(currentOpenBlock is Paragraph){
+            if(currentOpenBlock is Paragraph && droppedMatch.isBlank()){
                 // cannot append a new list item if this would be considered part of the paragraph
                 // which means the indent on the number must be less
-                if(droppedMatch.isBlank() && !paragraphContinueCheck(currentOpenBlock, line.countLeadingSpaces())){
                     return falseReturn
-                }
             }
             if(droppedMatch.isNotBlank() && droppedMatch[0] != ' ' ){
                 return falseReturn

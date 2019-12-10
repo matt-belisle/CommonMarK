@@ -16,18 +16,18 @@ abstract class Container(parent: Container?, indent: Int) : Block(parent = paren
 
     abstract fun dropPrefix(line: String): String
 
-    internal fun lazyContinue(line: String): Boolean {
+    internal fun lazyContinue(line: String): Pair<Boolean, Block> {
         val lastChild = getLastChild()
         if (lastChild != null && lastChild.isOpen()) {
             if (lastChild is Leaf && lastChild is ILazyMatch) {
-                return lastChild.lazyMatch(dropPrefix(line))
+                return Pair(lastChild.match(line), lastChild)
             } else if (lastChild is Container) {
                 //recursive call will dig down to final open block in chain and see whether it can continue
                 return lastChild.lazyContinue(line)
             }
 
         }
-        return false
+        return Pair(false, this)
     }
 
     private fun closeAllChildren() = children.forEach { it.close() }

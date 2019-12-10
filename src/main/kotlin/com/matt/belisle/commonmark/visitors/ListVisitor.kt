@@ -61,14 +61,17 @@ class ListVisitor : PostOrderTraversalVisitor() {
                 if(list != null){
                     if(block.markerType == list.markerType){
                         list.addChild(block)
+                        block.parent = list
                     } else {
                         closeAndAddList(newChildren, list)
                         list = ListContainer(container, container.indent, block.markerType, block.startingNumber)
                         list.addChild(block)
+                        block.parent = list
                     }
                 }  else{
                     list = ListContainer(container, container.indent, block.markerType, block.startingNumber)
                     list.addChild(block)
+                    block.parent = list
                 }
             } else {
                 if(list != null){
@@ -87,7 +90,7 @@ class ListVisitor : PostOrderTraversalVisitor() {
         }
         return container
     }
-    private fun closeAndAddList(to: MutableList<Block>, from: ListContainer){
+    private fun closeAndAddList(to: MutableList<Block>, from: ListContainer) {
         from.close()
         to.add(from)
     }

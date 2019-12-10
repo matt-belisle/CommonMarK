@@ -29,16 +29,14 @@ class BlockQuote(parent: Container, indent: Int) : Container(parent = parent, in
             return false
         }
 
-        val trimmed = line.trim()
+        val trimmed = line.trimStart()
 
         if (trimmed.isNotEmpty()) {
             // we either directly match this blockquote
-            return if (trimmed[0] == '>') {
-                true
-                //or we match lazily down lower, actions by parser are same regardless
-            } else {
-                lazyContinue(line)
-            }
+            return trimmed[0] == '>'
+                 //else {
+//                lazyContinue(line)
+//            }
         }
         return false
     }

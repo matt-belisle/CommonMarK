@@ -4,7 +4,7 @@ import com.matt.belisle.commonmark.ast.containerBlocks.Container
 import com.matt.belisle.commonmark.visitors.Visitor
 
 
-abstract class Block(public val parent: Container?, public val indent: Int) : IMatchable {
+abstract class Block(var parent: Container?, val indent: Int) : IMatchable {
     private object SerialNumberObj{
         private var value = 0
         fun incrementAndGet() = value++

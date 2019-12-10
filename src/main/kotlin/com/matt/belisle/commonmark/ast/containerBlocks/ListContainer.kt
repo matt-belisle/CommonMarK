@@ -11,18 +11,22 @@ class ListContainer(parent: Container, indent: Int, val markerType: MarkerType, 
         // if any are loose they are all loose
         val loose = children.drop(1).any { (it as ListItem).loose }
         if(loose){
-            children.forEach { (it as ListItem).loose = true }
+            setLoose(true)
             return
         } else {
             // the last checked all but last as if the last one is loose because only the last block is
             // a blank line then the list is actually tight
             val lastChild = children.last() as ListItem
             if(lastChild.children.drop(1).dropLast(1).any { it is BlankLine }){
-                children.forEach { (it as ListItem).loose = true }
+                setLoose(true)
             } else{
-                children.forEach { (it as ListItem).loose = false }
+                setLoose(false)
             }
         }
+    }
+
+    private fun setLoose(loose: Boolean){
+        children.forEach { if(it is ListItem) it.loose = loose }
     }
 
     override fun render(): String {

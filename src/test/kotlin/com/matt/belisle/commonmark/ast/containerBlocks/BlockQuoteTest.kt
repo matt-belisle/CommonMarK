@@ -10,7 +10,7 @@ class BlockQuoteTest: BasicBlockTest(){
     @Test
     fun specTest() {
         //TODO only failing test is 201 due to no inline parsing
-        specTest(215)
+        specTest(202)
         specTest("Block quotes")
 
     }
