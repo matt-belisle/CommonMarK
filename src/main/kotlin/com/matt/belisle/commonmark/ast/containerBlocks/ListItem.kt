@@ -1,10 +1,12 @@
 package com.matt.belisle.commonmark.ast.containerBlocks
 
-import com.matt.belisle.commonmark.ast.*
+import com.matt.belisle.commonmark.ast.Block
+import com.matt.belisle.commonmark.ast.IStaticMatchableContainer
+import com.matt.belisle.commonmark.ast.countLeadingSpaces
+import com.matt.belisle.commonmark.ast.indentCheck
 import com.matt.belisle.commonmark.ast.leafBlocks.BlankLine
 import com.matt.belisle.commonmark.ast.leafBlocks.Paragraph
 import com.matt.belisle.commonmark.ast.leafBlocks.ThematicBreak
-import kotlin.math.abs
 
 
 enum class MarkerType {NUMERIC_DOT, NUMERIC_BRACKET, PLUS, MINUS, STAR}
@@ -203,18 +205,6 @@ class ListItem private constructor(parent: Container, val startingNumber: Int, v
             }
             // shouldn't ever get here so crash if so
             throw Exception("Invalid List Marker")
-        }
-
-        // will check if we can match as the next listItem in the list or not
-        private fun paragraphContinueCheck(paragraph: Paragraph, indent: Int): Boolean {
-            var block: Block = paragraph
-            while (block.parent != null){
-                block = block.parent!!
-                if(block is ListItem){
-                    return abs(block.indent - indent) < 4
-                }
-            }
-            return block is ListItem && block.indent <= indent
         }
     }
 }

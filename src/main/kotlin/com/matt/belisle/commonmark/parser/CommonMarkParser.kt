@@ -8,7 +8,7 @@ import com.matt.belisle.commonmark.ast.containerBlocks.BlockQuote
 import com.matt.belisle.commonmark.ast.containerBlocks.Container
 import com.matt.belisle.commonmark.ast.containerBlocks.ListItem
 import com.matt.belisle.commonmark.ast.leafBlocks.*
-import com.matt.belisle.commonmark.visitors.listVisitors.BlankLinePropogationVisitor
+import com.matt.belisle.commonmark.visitors.listVisitors.BlankLinePropagationVisitor
 import com.matt.belisle.commonmark.visitors.listVisitors.CreateListBlockVisitor
 
 
@@ -32,7 +32,7 @@ class CommonMarkParser(
             BlankLine.Companion
         ),
         listOf(BlockQuote.Companion, ListItem.Companion),
-        listOf(BlankLinePropogationVisitor(), CreateListBlockVisitor())
+        listOf(BlankLinePropagationVisitor(), CreateListBlockVisitor())
     )
 
     fun parse(data: List<String>): Document {

@@ -4,7 +4,6 @@ import com.matt.belisle.commonmark.ast.Block
 import com.matt.belisle.commonmark.ast.IStaticMatchableContainer
 import com.matt.belisle.commonmark.ast.countLeadingSpaces
 import com.matt.belisle.commonmark.ast.indentCheck
-import com.matt.belisle.commonmark.visitors.Visitor
 
 class BlockQuote(parent: Container, indent: Int) : Container(parent = parent, indent = indent) {
 

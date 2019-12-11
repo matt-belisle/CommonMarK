@@ -9,9 +9,9 @@ import com.matt.belisle.commonmark.ast.containerBlocks.ListItem
 import com.matt.belisle.commonmark.ast.leafBlocks.*
 import com.matt.belisle.commonmark.visitors.PostOrderTraversalVisitor
 
-// the point of this is to propogate the blankLine inside of listItems if the last lines in the listItem are blank,
+// the point of this is to propagate the blankLine inside of listItems if the last lines in the listItem are blank,
 // as these lines actually correspond to the list it is contained in
-class BlankLinePropogationVisitor : PostOrderTraversalVisitor() {
+class BlankLinePropagationVisitor : PostOrderTraversalVisitor() {
     override fun visit(atxHeading: ATXHeading): List<Block> {
         return listOf(atxHeading)
     }

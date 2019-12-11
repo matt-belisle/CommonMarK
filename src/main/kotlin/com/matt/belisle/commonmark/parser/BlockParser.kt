@@ -6,7 +6,7 @@ import com.matt.belisle.commonmark.ast.containerBlocks.Container
 import com.matt.belisle.commonmark.ast.containerBlocks.ListItem
 import com.matt.belisle.commonmark.ast.leafBlocks.*
 import com.matt.belisle.commonmark.visitors.Visitor
-import com.matt.belisle.commonmark.visitors.listVisitors.BlankLinePropogationVisitor
+import com.matt.belisle.commonmark.visitors.listVisitors.BlankLinePropagationVisitor
 import com.matt.belisle.commonmark.visitors.listVisitors.CreateListBlockVisitor
 
 
@@ -29,7 +29,7 @@ class BlockParser(
             BlankLine.Companion
         ),
         listOf(BlockQuote.Companion, ListItem.Companion),
-        listOf(BlankLinePropogationVisitor(), CreateListBlockVisitor())
+        listOf(BlankLinePropagationVisitor(), CreateListBlockVisitor())
     )
 
     private val allBlocks: List<IStaticMatchable<out Block>> = containers.plus(leaves)
@@ -63,7 +63,6 @@ class BlockParser(
 
                         } else {
                             // close the tree including the currently checked block as it is no longer matching
-//                            currentOpenBlock.close()
                             unMatchedBlock = currentOpenBlock
                             // use the last matched block for the parent
                             currentOpenBlock = currentOpenBlock.parent
