@@ -5,7 +5,8 @@ import com.matt.belisle.commonmark.ast.containerBlocks.BlockQuote
 import com.matt.belisle.commonmark.ast.containerBlocks.Container
 import com.matt.belisle.commonmark.ast.containerBlocks.ListItem
 import com.matt.belisle.commonmark.ast.leafBlocks.*
-import com.matt.belisle.commonmark.visitors.ListVisitor
+import com.matt.belisle.commonmark.visitors.listVisitors.BlankLinePropogationVisitor
+import com.matt.belisle.commonmark.visitors.listVisitors.CreateListBlockVisitor
 
 
 // leaves are the leaves that can be parsed to, blocks in descending order of precedence,
@@ -27,8 +28,6 @@ class BlockParser(
         ), listOf(BlockQuote.Companion, ListItem.Companion)
     )
 
-
-    private val document = Document()
     private val allBlocks: List<IStaticMatchable<out Block>> = containers.plus(leaves)
     private val canInterruptParagraph = allBlocks.filter { it.canInterruptParagraph }
 
@@ -89,7 +88,8 @@ class BlockParser(
                 }
             }
         document.close()
-        return ListVisitor().simplify(document) as Document
+        val blankLineRemoved = BlankLinePropogationVisitor().simplify(document)
+        return CreateListBlockVisitor().simplify(blankLineRemoved) as Document
     }
 
     private fun parseIntoNewBlock(line: String, parentBlock: Container): Boolean{

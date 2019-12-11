@@ -8,24 +8,29 @@ class ListContainer(parent: Container, indent: Int, val markerType: MarkerType, 
 
     override fun close() {
         super.close()
+        // remove this from having the opppurtunity from interrupting the loose / tight check
+        if(children.last() is BlankLine){
+            children.dropLast(1)
+        }
         // if any are loose they are all loose
-        val loose = children.drop(1).any { (it as ListItem).loose }
+        val loose = children.drop(1).any { if(it is ListItem) it.loose else it is BlankLine }
         if(loose){
             setLoose(true)
             return
         } else {
             // the last checked all but last as if the last one is loose because only the last block is
             // a blank line then the list is actually tight
-            val lastChild = children.last() as ListItem
-            if(lastChild.children.drop(1).dropLast(1).any { it is BlankLine }){
-                setLoose(true)
-            } else{
-                setLoose(false)
-            }
+//            val lastChild = children.last() as ListItem
+//            if(lastChild.children.drop(1).dropLast(1).any { it is BlankLine }){
+//                setLoose(true)
+//            } else{
+//                setLoose(false)
+//            }
+            return
         }
     }
 
-    private fun setLoose(loose: Boolean){
+    fun setLoose(loose: Boolean){
         children.forEach { if(it is ListItem) it.loose = loose }
     }
 

@@ -33,9 +33,9 @@ class ListItem private constructor(parent: Container, val startingNumber: Int, v
         // if any of the not first children are blank lines then we have a loose list, the
         // list container itself will check if the last of any of the non-terminal list items
         // end in a blank line
-        val leadingBlankLine = if(children.first() is BlankLine) 1 else 0
-        val trailingBlankLine = if(children.last() is BlankLine && children.size > 1 ) 1 else 0
-        loose = children.drop(leadingBlankLine).dropLast(trailingBlankLine).any { it is BlankLine}
+            val leadingBlankLine = if (children.first() is BlankLine) 1 else 0
+            val trailingBlankLine = if (children.last() is BlankLine && children.size > 1) 1 else 0
+            loose = children.drop(leadingBlankLine).dropLast(trailingBlankLine).any { it is BlankLine }
     }
 
     override fun render(): String {

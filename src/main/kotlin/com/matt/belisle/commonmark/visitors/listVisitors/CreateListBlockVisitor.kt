@@ -1,4 +1,4 @@
-package com.matt.belisle.commonmark.visitors
+package com.matt.belisle.commonmark.visitors.listVisitors
 
 import CodeFence
 import com.matt.belisle.commonmark.ast.Block
@@ -8,8 +8,9 @@ import com.matt.belisle.commonmark.ast.containerBlocks.Container
 import com.matt.belisle.commonmark.ast.containerBlocks.ListItem
 import com.matt.belisle.commonmark.ast.containerBlocks.ListContainer
 import com.matt.belisle.commonmark.ast.leafBlocks.*
+import com.matt.belisle.commonmark.visitors.PostOrderTraversalVisitor
 
-class ListVisitor : PostOrderTraversalVisitor() {
+class CreateListBlockVisitor : PostOrderTraversalVisitor() {
     override fun visit(atxHeading: ATXHeading): List<Block> {
         return listOf(atxHeading)
     }
@@ -73,6 +74,12 @@ class ListVisitor : PostOrderTraversalVisitor() {
                     list.addChild(block)
                     block.parent = list
                 }
+            } else if(block is BlankLine){
+                if(list != null) {
+                    list.addChild(block)
+                } else {
+                    newChildren.add(block)
+                }
             } else {
                 if(list != null){
                     closeAndAddList(newChildren, list)
@@ -91,7 +98,18 @@ class ListVisitor : PostOrderTraversalVisitor() {
         return container
     }
     private fun closeAndAddList(to: MutableList<Block>, from: ListContainer) {
+        // make sure that last item isn't the only blank line for final loose check
+        val lastItem = from.children.last()
+        if(lastItem is BlankLine){
+            from.children.removeAt(from.children.size - 1)
+            if(from.children.any { it is BlankLine }){
+                from.setLoose(true)
+            }
+        }
         from.close()
         to.add(from)
+        if(lastItem is BlankLine){
+            to.add(lastItem)
+        }
     }
 }

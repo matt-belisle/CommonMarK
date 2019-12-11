@@ -4,7 +4,7 @@ import com.matt.belisle.commonmark.ast.Block
 import com.matt.belisle.commonmark.ast.containerBlocks.Container
 
 
-abstract class PostOrderTraversalVisitor() : Visitor(){
+abstract class PostOrderTraversalVisitor : Visitor(){
     override fun traverse(block: Block): List<Block> {
         return if(block is Container){
             val list = mutableListOf<Block>()
@@ -14,6 +14,9 @@ abstract class PostOrderTraversalVisitor() : Visitor(){
             if(list != block.children){
                 block.children.clear()
                 block.children.addAll(list)
+                block.children.forEach {
+                    it.parent = block
+                }
             }
             visit(block)
         } else {

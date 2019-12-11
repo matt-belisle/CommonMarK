@@ -77,8 +77,7 @@ class Paragraph private constructor(parent: Container, indent: Int) : Leaf(paren
             ignoreSetext = true
         }
         return match(line) &&
-                (!setext.first || (setext.first && setext.second == '='))
-                && !canInterrupt.any { it.match(line, this.parent!!, 0) }
+                (!setext.first || ignoreSetext )
     }
 
     companion object : IStaticMatchableLeaf<Paragraph> {

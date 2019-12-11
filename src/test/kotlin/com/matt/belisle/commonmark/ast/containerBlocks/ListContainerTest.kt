@@ -9,9 +9,6 @@ class ListContainerTest : BasicBlockTest() {
     // TODO 287 fails as link ref definition
     // TODO 279, 278 fail as HTML
 
-        //TODO 285, 295, 296 fix loose check
-//        specTest("List items")
-        specTest(285)
         specTest("Lists")
     }
 

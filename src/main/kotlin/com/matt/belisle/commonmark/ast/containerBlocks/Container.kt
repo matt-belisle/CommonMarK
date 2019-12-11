@@ -20,7 +20,7 @@ abstract class Container(parent: Container?, indent: Int) : Block(parent = paren
         val lastChild = getLastChild()
         if (lastChild != null && lastChild.isOpen()) {
             if (lastChild is Leaf && lastChild is ILazyMatch) {
-                return Pair(lastChild.match(line), lastChild)
+                return Pair(lastChild.lazyMatch(line), lastChild)
             } else if (lastChild is Container) {
                 //recursive call will dig down to final open block in chain and see whether it can continue
                 return lastChild.lazyContinue(line)

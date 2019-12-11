@@ -65,6 +65,7 @@ class ParagraphTest: BasicBlockTest() {
 
     @Test
     fun specTests() {
+        // TODO 196 requires inline parsing
         specTest("Paragraphs")
     }
 }
