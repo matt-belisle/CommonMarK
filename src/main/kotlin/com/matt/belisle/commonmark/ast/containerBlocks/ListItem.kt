@@ -65,7 +65,6 @@ class ListItem private constructor(parent: Container, val startingNumber: Int, v
 
     companion object : IStaticMatchableContainer<ListItem> {
 
-        override val canBeConsecutive: Boolean = true
         override val canInterruptParagraph: Boolean = true
 
         override fun match(line: String, currentOpenBlock: Block, indentation: Int): Boolean {

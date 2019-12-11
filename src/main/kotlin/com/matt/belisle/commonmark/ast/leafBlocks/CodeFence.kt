@@ -50,7 +50,6 @@ class CodeFence private constructor(
 
     companion object : IStaticMatchableLeaf<CodeFence> {
 
-        override val canBeConsecutive: Boolean = false
         override val canInterruptParagraph: Boolean = true
 
         override fun parse(line: String, currentOpenBlock: Block, indentation: Int, parent: Container): CodeFence {

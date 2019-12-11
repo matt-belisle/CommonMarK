@@ -2,7 +2,6 @@ package com.matt.belisle.commonmark.ast.leafBlocks
 
 import com.matt.belisle.commonmark.ast.*
 import com.matt.belisle.commonmark.ast.containerBlocks.Container
-import com.matt.belisle.commonmark.ast.containerBlocks.ListContainer
 import com.matt.belisle.commonmark.ast.inlineElements.InlineString
 import java.lang.StringBuilder
 
@@ -84,7 +83,6 @@ class Paragraph private constructor(parent: Container, indent: Int) : Leaf(paren
 
         var canInterrupt: List<IStaticMatchable<out Block>> = emptyList()
 
-        override val canBeConsecutive: Boolean = false
         override val canInterruptParagraph: Boolean = false
 
         override fun parse(line: String, currentOpenBlock: Block, indentation: Int, parent: Container): Paragraph {

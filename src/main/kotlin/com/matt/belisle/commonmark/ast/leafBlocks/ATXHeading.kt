@@ -34,7 +34,6 @@ class ATXHeading private constructor(val headingLevel: Int, indentation: Int, pa
 
     companion object : IStaticMatchableLeaf<ATXHeading> {
 
-        override val canBeConsecutive: Boolean = true
         override val canInterruptParagraph: Boolean = true
 
         override fun match(line: String, currentOpenBlock: Block, indentation: Int): Boolean {

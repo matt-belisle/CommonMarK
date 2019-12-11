@@ -36,7 +36,6 @@ class BlankLine private constructor(parent: Container, indent: Int) : Leaf(paren
 
     companion object : IStaticMatchableLeaf<BlankLine> {
 
-        override val canBeConsecutive: Boolean = false
         override val canInterruptParagraph: Boolean = true
 
         override fun parse(line: String, currentOpenBlock: Block, indentation: Int, parent: Container): BlankLine {

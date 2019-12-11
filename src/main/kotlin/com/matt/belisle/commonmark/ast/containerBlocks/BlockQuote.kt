@@ -43,7 +43,6 @@ class BlockQuote(parent: Container, indent: Int) : Container(parent = parent, in
 
     companion object : IStaticMatchableContainer<BlockQuote> {
 
-        override val canBeConsecutive: Boolean = false
         override val canInterruptParagraph: Boolean = true
 
         override fun match(line: String, currentOpenBlock: Block, indentation: Int): Boolean {

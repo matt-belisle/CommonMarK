@@ -44,7 +44,6 @@ class IndentedCodeBlock(indent: Int, parent: Container) : Leaf(indent = indent, 
 
     companion object : IStaticMatchableLeaf<IndentedCodeBlock> {
 
-        override val canBeConsecutive: Boolean = true
         override val canInterruptParagraph: Boolean = false
 
         override fun parse(

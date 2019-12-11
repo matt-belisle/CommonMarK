@@ -33,7 +33,6 @@ class ThematicBreak private constructor(val thematicBreakChar: Char, parent: Con
 
     companion object : IStaticMatchableLeaf<ThematicBreak> {
 
-        override val canBeConsecutive: Boolean = true
         override val canInterruptParagraph: Boolean = true
 
         override fun parse(line: String, currentOpenBlock: Block, indentation: Int, parent: Container): ThematicBreak {
