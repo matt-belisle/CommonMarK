@@ -61,6 +61,12 @@ class IndentedCodeBlock(indent: Int, parent: Container) : Leaf(indent = indent, 
 
         // this will be the match to open a new paragraph block
         override fun match(line: String, currentOpenBlock: Block, indentation: Int): Boolean {
+            //TODO see if this has any unintended consequences, it shouldn't as only lazy continue block is paragraph
+            if(currentOpenBlock is Container){
+                if(currentOpenBlock.lazyContinue(line).first){
+                    return false
+                }
+            }
             return line.countLeadingSpaces() >= indentCheck(indentation) && line.isNotBlank()
         }
 

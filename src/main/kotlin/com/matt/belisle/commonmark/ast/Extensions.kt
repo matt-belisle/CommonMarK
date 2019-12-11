@@ -32,5 +32,5 @@ fun String.removeLeadingChar(char: Char, amount: Int): String {
     }
 }
 
-inline fun indentCheck(indent: Int) = 4 + indent
+fun indentCheck(indent: Int) = 4 + indent
 

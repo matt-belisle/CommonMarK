@@ -9,7 +9,7 @@ import org.junit.ComparisonFailure
 import org.junit.Test
 
 abstract class BasicBlockTest {
-    internal var document = Document()
+    protected var document = Document()
 
     fun specTest(type: String){
         runSpecTest(TestCases.testCases.filter { it.section == type }, false)

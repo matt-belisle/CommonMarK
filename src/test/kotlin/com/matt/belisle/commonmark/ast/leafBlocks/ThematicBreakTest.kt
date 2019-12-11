@@ -63,6 +63,7 @@ class ThematicBreakTest: BasicBlockTest() {
 
     @Test
     fun specTest(){
+        // TODO 26 fails because of inlines
         specTest("Thematic breaks")
     }
 }

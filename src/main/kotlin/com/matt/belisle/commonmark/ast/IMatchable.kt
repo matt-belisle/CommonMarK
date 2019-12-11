@@ -2,6 +2,7 @@ package com.matt.belisle.commonmark.ast
 
 import com.matt.belisle.commonmark.ast.containerBlocks.Container
 import com.matt.belisle.commonmark.ast.leafBlocks.Leaf
+import com.matt.belisle.commonmark.visitors.Visitor
 
 //used for the companion object implementation of static which needs the indentation level
 interface IStaticMatchable<T> {

@@ -21,12 +21,17 @@ class BlankLine private constructor(parent: Container, indent: Int) : Leaf(paren
         if(line.isNotBlank()){
             throw Exception("Tried to put a non empty line in a blank line block")
         }
-        // do nothing as line is empty this doesnt render
         numberOfLines++
     }
 
     override fun match(line: String): Boolean {
         return line.isBlank()
+    }
+
+    fun dropLastBlankLine(): BlankLine {
+        assert(numberOfLines > 1)
+        numberOfLines--
+        return BlankLine(parent!!)
     }
 
     companion object : IStaticMatchableLeaf<BlankLine> {

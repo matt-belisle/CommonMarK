@@ -6,7 +6,7 @@ import org.junit.Test
 class SetextHeadingTest: BasicBlockTest() {
     @Test
     fun specTests(){
-        specTest(63)
+        //TODO 50 51 52 61 72 76 need inline
         specTest("Setext headings")
     }
 }

@@ -5,7 +5,7 @@ import com.matt.belisle.commonmark.ast.IStaticMatchableContainer
 import com.matt.belisle.commonmark.ast.countLeadingSpaces
 import com.matt.belisle.commonmark.ast.indentCheck
 
-class BlockQuote(parent: Container) : Container(parent = parent, indent = 0) {
+class BlockQuote(parent: Container, indent: Int) : Container(parent = parent, indent = indent) {
 
     // only call if matched
     override fun dropPrefix(line: String): String {
@@ -29,16 +29,14 @@ class BlockQuote(parent: Container) : Container(parent = parent, indent = 0) {
             return false
         }
 
-        val trimmed = line.trim()
+        val trimmed = line.trimStart()
 
         if (trimmed.isNotEmpty()) {
             // we either directly match this blockquote
-            return if (trimmed[0] == '>') {
-                true
-                //or we match lazily down lower, actions by parser are same regardless
-            } else {
-                lazyContinue(line)
-            }
+            return trimmed[0] == '>'
+                 //else {
+//                lazyContinue(line)
+//            }
         }
         return false
     }
@@ -68,7 +66,8 @@ class BlockQuote(parent: Container) : Container(parent = parent, indent = 0) {
             parent: Container
         ): Pair<BlockQuote, String> {
             assert(match(line, currentOpenBlock, indentation))
-            return Pair(BlockQuote(parent), dropMarker(line.trimStart()))
+            // pass indentation through as blockquotes don't add any indent level
+            return Pair(BlockQuote(parent, indentation), dropMarker(line.trimStart()))
         }
 
 
