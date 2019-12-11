@@ -5,6 +5,7 @@ import com.matt.belisle.commonmark.ast.containerBlocks.BlockQuote
 import com.matt.belisle.commonmark.ast.containerBlocks.Container
 import com.matt.belisle.commonmark.ast.containerBlocks.ListItem
 import com.matt.belisle.commonmark.ast.leafBlocks.*
+import com.matt.belisle.commonmark.visitors.Visitor
 import com.matt.belisle.commonmark.visitors.listVisitors.BlankLinePropogationVisitor
 import com.matt.belisle.commonmark.visitors.listVisitors.CreateListBlockVisitor
 
@@ -14,7 +15,8 @@ import com.matt.belisle.commonmark.visitors.listVisitors.CreateListBlockVisitor
 // containers are the containers that can be parsed to
 class BlockParser(
     leaves: List<IStaticMatchableLeaf<out Leaf>>,
-    containers: List<IStaticMatchableContainer<out Container>>
+    containers: List<IStaticMatchableContainer<out Container>>,
+    private val visitors: List<Visitor>
 ) {
 
     constructor() : this(
@@ -25,7 +27,9 @@ class BlockParser(
             CodeFence.Companion,
             Paragraph.Companion,
             BlankLine.Companion
-        ), listOf(BlockQuote.Companion, ListItem.Companion)
+        ),
+        listOf(BlockQuote.Companion, ListItem.Companion),
+        listOf(BlankLinePropogationVisitor(), CreateListBlockVisitor())
     )
 
     private val allBlocks: List<IStaticMatchable<out Block>> = containers.plus(leaves)
@@ -88,8 +92,9 @@ class BlockParser(
                 }
             }
         document.close()
-        val blankLineRemoved = BlankLinePropogationVisitor().simplify(document)
-        return CreateListBlockVisitor().simplify(blankLineRemoved) as Document
+        var visited: Block = document
+        visitors.forEach { visited = it.simplify(visited) }
+        return visited as Document
     }
 
     private fun parseIntoNewBlock(line: String, parentBlock: Container): Boolean{
