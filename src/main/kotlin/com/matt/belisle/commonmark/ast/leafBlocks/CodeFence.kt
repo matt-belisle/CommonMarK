@@ -36,9 +36,10 @@ class CodeFence private constructor(
 
     override fun render(): String {
         val builder = StringBuilder()
-        with(builder){
+        with(builder) {
             append("<pre>")
-            val infoStringHTML = if(infoString.isNotEmpty()) " class=\"language-${infoString.trim().split(' ').first()}\"" else ""
+            val infoStringHTML =
+                if (infoString.isNotEmpty()) " class=\"language-${infoString.trim().split(' ').first()}\"" else ""
             append("<code$infoStringHTML>")
             inline.forEach { append("${it.render()}\n") }
             append("</code>")
@@ -47,9 +48,8 @@ class CodeFence private constructor(
         return builder.toString()
     }
 
-    companion object : IStaticMatchable<CodeFence> {
+    companion object : IStaticMatchableLeaf<CodeFence> {
 
-        override val canLazyContinue: Boolean = true
         override val canBeConsecutive: Boolean = false
         override val canInterruptParagraph: Boolean = true
 
@@ -81,7 +81,7 @@ class CodeFence private constructor(
                 else -> Pair(' ', 0)
             }
             // the label in a back ticked code fence may not contain a '`'
-            if(codeFenceChar == '`' && trimmed.substring(codeFenceLength).contains('`')) return Triple(' ', 0, 0)
+            if (codeFenceChar == '`' && trimmed.substring(codeFenceLength).contains('`')) return Triple(' ', 0, 0)
             return Triple(codeFenceChar, codeFenceLength, indent)
         }
     }

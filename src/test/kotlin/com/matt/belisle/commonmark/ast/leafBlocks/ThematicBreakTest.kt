@@ -1,5 +1,6 @@
 package com.matt.belisle.commonmark.ast.leafBlocks
 
+import com.matt.belisle.commonmark.ast.BasicBlockTest
 import com.matt.belisle.commonmark.ast.inlineElements.InlineString
 import org.junit.Test
 
@@ -62,6 +63,7 @@ class ThematicBreakTest: BasicBlockTest() {
 
     @Test
     fun specTest(){
+        // TODO 26 fails because of inlines
         specTest("Thematic breaks")
     }
 }

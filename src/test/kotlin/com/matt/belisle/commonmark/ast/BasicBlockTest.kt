@@ -1,15 +1,15 @@
-package com.matt.belisle.commonmark.ast.leafBlocks
+package com.matt.belisle.commonmark.ast
 
 import com.matt.belisle.commonmark.TestCase
 import com.matt.belisle.commonmark.TestCases
-import com.matt.belisle.commonmark.ast.Document
 import com.matt.belisle.commonmark.parser.CommonMarkParser
 import junit.framework.Assert.assertFalse
 import org.junit.Assert
 import org.junit.ComparisonFailure
+import org.junit.Test
 
 abstract class BasicBlockTest {
-    internal var document = Document()
+    protected var document = Document()
 
     fun specTest(type: String){
         runSpecTest(TestCases.testCases.filter { it.section == type }, false)
@@ -18,11 +18,17 @@ abstract class BasicBlockTest {
         runSpecTest(TestCases.testCases.filter { it.example == example }, true)
     }
 
+    fun specTest(test: TestCase){
+        runSpecTest(listOf(test), true)
+    }
+
     private fun runSpecTest(tests : List<TestCase>, singleTest: Boolean){
         var failed = false
         val parser = CommonMarkParser()
         tests.forEach {
-            val rendered = parser.parse(it.markdown.split('\n').dropLast(1)).render()
+            println("Parsing ${it.example}")
+            val parsed = parser.parse(it.markdown.split('\n').dropLast(1))
+            val rendered = parsed.render()
             //TODO for now keep here as just wanting to see block structure is correct, once inlines started do not have this
             try{
                 Assert.assertEquals(

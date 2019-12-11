@@ -4,7 +4,8 @@ import com.matt.belisle.commonmark.ast.*
 import com.matt.belisle.commonmark.ast.containerBlocks.Container
 import com.matt.belisle.commonmark.ast.inlineElements.InlineString
 
-class ThematicBreak private constructor(val thematicBreakChar: Char, parent: Container, indentation: Int) : Leaf(parent, indentation) {
+class ThematicBreak private constructor(val thematicBreakChar: Char, parent: Container, indentation: Int) :
+    Leaf(parent, indentation) {
 
     //cannot append anything to a thematic break so this will throw an error
     override fun appendLine(line: String) {
@@ -13,7 +14,11 @@ class ThematicBreak private constructor(val thematicBreakChar: Char, parent: Con
     }
 
 
-    private constructor(line: String, thematicBreakChar: Char, indentation: Int, parent: Container) : this(thematicBreakChar, parent, indentation) {
+    private constructor(line: String, thematicBreakChar: Char, indentation: Int, parent: Container) : this(
+        thematicBreakChar,
+        parent,
+        indentation
+    ) {
         this.inline.add(InlineString(line))
     }
 
@@ -26,10 +31,9 @@ class ThematicBreak private constructor(val thematicBreakChar: Char, parent: Con
         return "<hr />\n"
     }
 
-    companion object : IStaticMatchable<ThematicBreak> {
+    companion object : IStaticMatchableLeaf<ThematicBreak> {
 
         override val canBeConsecutive: Boolean = true
-        override val canLazyContinue: Boolean = false
         override val canInterruptParagraph: Boolean = true
 
         override fun parse(line: String, currentOpenBlock: Block, indentation: Int, parent: Container): ThematicBreak {
@@ -39,7 +43,7 @@ class ThematicBreak private constructor(val thematicBreakChar: Char, parent: Con
             return ThematicBreak(line, char!!, indentation, parent)
         }
 
-        override fun match(line: String,currentOpenBlock: Block, indentation: Int): Boolean {
+        override fun match(line: String, currentOpenBlock: Block, indentation: Int): Boolean {
             val (thematicChar, match, count) = getThematicCharacter(line)
             // last check should be taken as a setext
             return line.countLeadingSpaces() < indentCheck(indentation) && match && !(currentOpenBlock is Paragraph && thematicChar == '-' && line.trim().length == count)

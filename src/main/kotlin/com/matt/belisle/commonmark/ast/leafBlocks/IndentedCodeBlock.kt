@@ -18,11 +18,12 @@ class IndentedCodeBlock(indent: Int, parent: Container) : Leaf(indent = indent, 
     override fun appendLine(line: String) {
         inline.add(InlineString(line.removeLeadingChar(' ', indentCheck(indent))))
 
-        if(line.isNotBlank()){
+        if (line.isNotBlank()) {
             lastNonBlankLine = inline.size - 1
         }
     }
-    private constructor(line:String, indent: Int, parent: Container):this(indent, parent){
+
+    private constructor(line: String, indent: Int, parent: Container) : this(indent, parent) {
         appendLine(line)
     }
 
@@ -41,13 +42,17 @@ class IndentedCodeBlock(indent: Int, parent: Container) : Leaf(indent = indent, 
         return builder.toString()
     }
 
-    companion object: IStaticMatchable<IndentedCodeBlock> {
+    companion object : IStaticMatchableLeaf<IndentedCodeBlock> {
 
-        override val canLazyContinue: Boolean = false
         override val canBeConsecutive: Boolean = true
         override val canInterruptParagraph: Boolean = false
 
-        override fun parse(line: String, currentOpenBlock: Block, indentation: Int, parent: Container): IndentedCodeBlock {
+        override fun parse(
+            line: String,
+            currentOpenBlock: Block,
+            indentation: Int,
+            parent: Container
+        ): IndentedCodeBlock {
             // must be able to match to parse the line
             assert(this.match(line, currentOpenBlock, indentation))
             //remove leading and trailing spaces and return a new paragraph
@@ -56,7 +61,13 @@ class IndentedCodeBlock(indent: Int, parent: Container) : Leaf(indent = indent, 
 
         // this will be the match to open a new paragraph block
         override fun match(line: String, currentOpenBlock: Block, indentation: Int): Boolean {
-            return  line.countLeadingSpaces() >= indentCheck(indentation) && line.isNotBlank()
+            //TODO see if this has any unintended consequences, it shouldn't as only lazy continue block is paragraph
+            if(currentOpenBlock is Container){
+                if(currentOpenBlock.lazyContinue(line).first){
+                    return false
+                }
+            }
+            return line.countLeadingSpaces() >= indentCheck(indentation) && line.isNotBlank()
         }
 
     }
