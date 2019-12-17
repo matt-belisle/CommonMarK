@@ -21,6 +21,7 @@ class BlockParser(
 
     constructor() : this(
         listOf(
+            HTMLBlock.Companion,
             IndentedCodeBlock.Companion,
             ThematicBreak.Companion,
             ATXHeading.Companion,
@@ -72,7 +73,7 @@ class BlockParser(
                 }
             }
             // final check for leaves not being matched
-                if(currentOpenBlock is Leaf && !currentOpenBlock.match(currentLine)){
+                if(currentOpenBlock is Leaf && (!currentOpenBlock.isOpen() || !currentOpenBlock.match(currentLine))){
                     currentOpenBlock.close()
                     currentOpenBlock = currentOpenBlock.parent
                 }

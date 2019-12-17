@@ -24,6 +24,7 @@ class CommonMarkParser(
 
     constructor() : this(
         listOf(
+            HTMLBlock.Companion,
             IndentedCodeBlock.Companion,
             ThematicBreak.Companion,
             ATXHeading.Companion,
