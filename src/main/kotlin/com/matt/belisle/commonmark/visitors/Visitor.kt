@@ -34,6 +34,7 @@ abstract class Visitor {
             is Document -> visit(block)
             is BlockQuote -> visit(block)
             is ListContainer -> visit(block)
+            is HTMLBlock -> visit(block)
 
             else -> throw Exception("This blocktype is not implemented for the visitor ${block::class}")
         }
@@ -46,6 +47,7 @@ abstract class Visitor {
     abstract fun visit(indentedCodeBlock: IndentedCodeBlock): List<Block>
     abstract fun visit(paragraph: Paragraph): List<Block>
     abstract fun visit(thematicBreak: ThematicBreak): List<Block>
+    abstract fun visit(htmlBlock: HTMLBlock): List<Block>
 
     abstract fun visit(listItems: ListItem): List<Block>
     abstract fun visit(document: Document): List<Block>

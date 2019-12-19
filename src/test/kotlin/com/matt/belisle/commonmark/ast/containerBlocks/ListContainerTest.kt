@@ -7,8 +7,6 @@ class ListContainerTest : BasicBlockTest() {
     @Test
     fun specTest(){
     // TODO 287 fails as link ref definition
-    // TODO 279, 278 fail as HTML
-
         specTest("Lists")
     }
 

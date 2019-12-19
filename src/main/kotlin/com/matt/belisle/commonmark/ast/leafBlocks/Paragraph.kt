@@ -21,7 +21,6 @@ class Paragraph private constructor(parent: Container, indent: Int) : Leaf(paren
     var ignoreSetext = false
 
     private constructor(line: String, indentation: Int, parent: Container) : this(parent, indentation) {
-        // remove leading and trailing spaces
         inline.add(InlineString(line))
     }
 

@@ -32,6 +32,10 @@ class BlankLinePropagationVisitor : PostOrderTraversalVisitor() {
         return listOf(thematicBreak)
     }
 
+    override fun visit(htmlBlock: HTMLBlock): List<Block> {
+        return listOf(htmlBlock)
+    }
+
     override fun visit(codeFence: CodeFence): List<Block> {
         return listOf(codeFence)
     }
