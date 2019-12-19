@@ -1,16 +1,10 @@
 package com.matt.belisle.commonmark.ast.leafBlocks
 
-import com.matt.belisle.commonmark.ast.Block
-import com.matt.belisle.commonmark.ast.IStaticMatchableLeaf
+import com.matt.belisle.commonmark.ast.*
 import com.matt.belisle.commonmark.ast.containerBlocks.Container
-import com.matt.belisle.commonmark.ast.countLeadingSpaces
 import com.matt.belisle.commonmark.ast.inlineElements.InlineString
+import com.matt.belisle.commonmark.ast.leafBlocks.util.HTMLType7Matcher
 
-// The paragraph block accepts any non empty line, as it is assumed if it would've matched any other block
-// then it would have been matched before getting to a paragraph
-// It removes leading spaces, and ends on a blank line / other block opening
-// A paragraph block may also be interpreted as a setext heading if a line containing only - or = is encountered,
-// his also closes the paragraph
 
 //private as to only allow the parse function in companion to construct a block
 private enum class HTMLBlockType {TYPE1, TYPE2, TYPE3, TYPE4, TYPE5, TYPE6, TYPE7}
@@ -28,7 +22,10 @@ class HTMLBlock private constructor(parent: Container, indent: Int, private val 
     override fun appendLine(line: String) {
         assert(match(line))
         inline.add(InlineString(line))
-        closeHTMLBasedOnType(line)
+        if(closeHTMLBasedOnType(line) && line.isBlank()){
+            // do not include trailing blank line
+            inline.removeAt(inline.lastIndex)
+        }
     }
 
     override fun render(): String {
@@ -43,7 +40,7 @@ class HTMLBlock private constructor(parent: Container, indent: Int, private val 
         return builder.toString()
     }
 
-    private fun closeHTMLBasedOnType(line: String){
+    private fun closeHTMLBasedOnType(line: String): Boolean{
         if(when(htmlBlockType){
                 HTMLBlockType.TYPE1 -> closeType1(line)
                 HTMLBlockType.TYPE2 -> closeType2(line)
@@ -54,7 +51,9 @@ class HTMLBlock private constructor(parent: Container, indent: Int, private val 
                 HTMLBlockType.TYPE7 -> closeType6or7(line)
             }){
             close()
+            return true
         }
+        return false
     }
 
     private fun closeType1(line: String): Boolean{
@@ -92,14 +91,15 @@ class HTMLBlock private constructor(parent: Container, indent: Int, private val 
 
         override fun parse(line: String, currentOpenBlock: Block, indentation: Int, parent: Container): HTMLBlock {
             // must be able to match to parse the line
-            return HTMLBlock(parent, indentation, matchWithType(line.trimStart()).second, line)
+            val trimmed = line.removeLeadingChar(' ', indentation)
+            return HTMLBlock(parent, indentation, matchWithType(line, currentOpenBlock).second, trimmed)
         }
 
         // this will be the match to open a new paragraph block
         override fun match(line: String, currentOpenBlock: Block, indentation: Int): Boolean {
-            return line.countLeadingSpaces() < 4 && matchWithType(line.trimStart()).first
+            return line.countLeadingSpaces() < indentCheck(indentation) && matchWithType(line.trimStart(), currentOpenBlock).first
         }
-        private fun matchWithType(line: String): Pair<Boolean, HTMLBlockType> {
+        private fun matchWithType(line: String, currentOpenBlock: Block): Pair<Boolean, HTMLBlockType> {
             return when {
                 type1Match(line) -> {
                     Pair(true, HTMLBlockType.TYPE1)
@@ -118,6 +118,9 @@ class HTMLBlock private constructor(parent: Container, indent: Int, private val 
                 }
                 type6Match(line) -> {
                     Pair(true, HTMLBlockType.TYPE6)
+                }
+                type7Match(line, currentOpenBlock) -> {
+                    Pair(true, HTMLBlockType.TYPE7)
                 }
                 else -> {
                     Pair(false, HTMLBlockType.TYPE1)
@@ -140,18 +143,17 @@ class HTMLBlock private constructor(parent: Container, indent: Int, private val 
             return line.startsWith("<?")
         }
         private fun type4Match(line: String): Boolean {
-            return startsWithRegex(line, """<!(A-Z)""".toRegex())
+            return startsWithRegex(line, """<![A-Z]""".toRegex())
         }
         private fun type5Match(line: String): Boolean {
             return line.startsWith("<![CDATA[")
         }
         private fun type6Match(line: String): Boolean {
             // case insensitive
-            return startsWithRegex(line.toLowerCase(), """</?(address|article|aside|base|basefont|blockquote|body|caption|center|col|colgroup|dd|details|dialog|dir|div|dl|dt|fieldset|figcaption|figure|footer|form|frame|frameset|h1|h2|h3|h4|h5|h6|head|header|hr|html|iframe|legend|li|link|main|menu|menuitem|nav|noframes|ol|optgroup|option|p|param|section|source|summary|table|tbody|td|tfoot|th|thead|title|tr|track|ul)(\s|/>|>)?""".toRegex(RegexOption.IGNORE_CASE))
+            return startsWithRegex(line.toLowerCase(), """</?(address|article|aside|base|basefont|blockquote|body|caption|center|col|colgroup|dd|details|dialog|dir|div|dl|dt|fieldset|figcaption|figure|footer|form|frame|frameset|h1|h2|h3|h4|h5|h6|head|header|hr|html|iframe|legend|li|link|main|menu|menuitem|nav|noframes|ol|optgroup|option|p|param|section|source|summary|table|tbody|td|tfoot|th|thead|title|tr|track|ul)(\s|/>|>)""".toRegex(RegexOption.IGNORE_CASE))
         }
-        private fun type7Match(line: String): Boolean {
-            // TODO build opening tag and closing tag parser
-            return false
+        private fun type7Match(line: String, currentOpenBlock: Block): Boolean {
+            return currentOpenBlock !is Paragraph && HTMLType7Matcher(line).startsWithMatch()
         }
         private fun startsWithRegex(line:String, regex: Regex): Boolean{
             val found = regex.find(line)

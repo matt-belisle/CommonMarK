@@ -8,7 +8,10 @@ class HTMLBlockTest: BasicBlockTest(){
 
     @Test
     fun specTest() {
-        specTest(139)
+        // TODO 137 138 inline HTML
+        // TODO 118 122 125 145 146 157 Emphasis
+        // TODO 152 153 160 &gt replacement
+
         specTest("HTML blocks")
     }
 }
