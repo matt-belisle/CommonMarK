@@ -4,6 +4,7 @@ import com.matt.belisle.commonmark.ast.*
 import com.matt.belisle.commonmark.ast.containerBlocks.Container
 import com.matt.belisle.commonmark.ast.inlineElements.InlineString
 import com.matt.belisle.commonmark.ast.leafBlocks.util.HTMLType7Matcher
+import com.matt.belisle.commonmark.parser.InlineParser
 
 
 //private as to only allow the parse function in companion to construct a block
@@ -38,6 +39,10 @@ class HTMLBlock private constructor(parent: Container, indent: Int, private val 
         }
 
         return builder.toString()
+    }
+
+    override fun analyzeInlines(inlineParser: InlineParser) {
+        //noop thse need to be formatted correctly by writer
     }
 
     private fun closeHTMLBasedOnType(line: String): Boolean{

@@ -3,6 +3,7 @@ package com.matt.belisle.commonmark.ast.leafBlocks
 import com.matt.belisle.commonmark.ast.*
 import com.matt.belisle.commonmark.ast.containerBlocks.Container
 import com.matt.belisle.commonmark.ast.inlineElements.InlineString
+import com.matt.belisle.commonmark.parser.InlineParser
 import java.lang.StringBuilder
 
 
@@ -40,6 +41,10 @@ class IndentedCodeBlock(indent: Int, parent: Container) : Leaf(indent = indent, 
             append("</code></pre>\n")
         }
         return builder.toString()
+    }
+
+    override fun analyzeInlines(inlineParser: InlineParser) {
+        //noop for codeBlocks until special character parsing has been implemented
     }
 
     companion object : IStaticMatchableLeaf<IndentedCodeBlock> {

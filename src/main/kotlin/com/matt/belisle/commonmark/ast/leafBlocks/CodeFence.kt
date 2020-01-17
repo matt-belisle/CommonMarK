@@ -1,8 +1,10 @@
 import com.matt.belisle.commonmark.ast.*
 import com.matt.belisle.commonmark.ast.containerBlocks.Container
+import com.matt.belisle.commonmark.ast.inlineElements.Inline
 import com.matt.belisle.commonmark.ast.leafBlocks.Leaf
 
 import com.matt.belisle.commonmark.ast.inlineElements.InlineString
+import com.matt.belisle.commonmark.parser.InlineParser
 import java.lang.StringBuilder
 
 // The paragraph block accepts any non empty line, as it is assumed if it would've matched any other block
@@ -15,7 +17,7 @@ class CodeFence private constructor(
     val fenceChar: Char,
     val fenceIndent: Int,
     val fenceLength: Int,
-    val infoString: String,
+    val infoString: MutableList<Inline>,
     parent: Container
 ) : Leaf(indent = indent, parent = parent) {
 
@@ -36,16 +38,23 @@ class CodeFence private constructor(
 
     override fun render(): String {
         val builder = StringBuilder()
+        val renderedInfoString = infoString.fold("", {acc, inline -> "$acc${inline.render()}"})
         with(builder) {
             append("<pre>")
             val infoStringHTML =
-                if (infoString.isNotEmpty()) " class=\"language-${infoString.trim().split(' ').first()}\"" else ""
+                if (renderedInfoString.isNotEmpty()) " class=\"language-${renderedInfoString.trim().split(' ').first()}\"" else ""
             append("<code$infoStringHTML>")
             inline.forEach { append("${it.render()}\n") }
             append("</code>")
             append("</pre>\n")
         }
         return builder.toString()
+    }
+
+    override fun analyzeInlines(inlineParser: InlineParser) {
+        val analyzed = inlineParser.analyzeLine(infoString);
+        infoString.clear()
+        infoString.addAll(analyzed)
     }
 
     companion object : IStaticMatchableLeaf<CodeFence> {
@@ -58,7 +67,7 @@ class CodeFence private constructor(
             val (codeFenceChar, codeFenceLength, codeFenceIndent) = getCodeFenceLengthIndent(line)
             //remove leading and trailing spaces and return a new paragraph
             val infoString = line.substring(codeFenceIndent + codeFenceLength)
-            return CodeFence(indentation, codeFenceChar, codeFenceIndent, codeFenceLength, infoString, parent)
+            return CodeFence(indentation, codeFenceChar, codeFenceIndent, codeFenceLength, mutableListOf(InlineString(infoString)), parent)
         }
 
         // this will be the match to open a new codeFence

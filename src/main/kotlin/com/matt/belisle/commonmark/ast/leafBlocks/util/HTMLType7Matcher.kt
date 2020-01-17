@@ -71,7 +71,7 @@ class HTMLType7Matcher(line: String) {
         }
         // one character is enough to be a valid tagName, so the advanceWhile will move the lexer to the point the name is done
         // (with any tag name other than script, style, or pre)
-        val tagName = lexer.returnMatchedWhile { isAsciiChar(it) || it.isDigit() || it == '-'}
+        val tagName = lexer.returnMatchedWhile { com.matt.belisle.commonmark.parser.inlineMatchers.isAsciiChar(it) || it.isDigit() || it == '-'}
         return !lexer.isEndOfLine() &&
                 !(tagName.equals("script", true) ||
                         tagName.equals("style", true) ||
@@ -162,7 +162,9 @@ class HTMLType7Matcher(line: String) {
         return !lexer.isEndOfLine()
     }
 
-    private fun testAttributeNameOpener(it: Char): Boolean = isAsciiChar(it) || it == '_'|| it == ':'
+    private fun testAttributeNameOpener(it: Char): Boolean = com.matt.belisle.commonmark.parser.inlineMatchers.isAsciiChar(
+        it
+    ) || it == '_'|| it == ':'
 
 
 }
