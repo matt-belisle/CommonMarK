@@ -2,7 +2,9 @@ package com.matt.belisle.commonmark.ast.leafBlocks
 
 import com.matt.belisle.commonmark.ast.*
 import com.matt.belisle.commonmark.ast.containerBlocks.Container
+import com.matt.belisle.commonmark.ast.inlineElements.HardBreak
 import com.matt.belisle.commonmark.ast.inlineElements.InlineString
+import com.matt.belisle.commonmark.ast.inlineElements.SoftBreak
 import java.lang.StringBuilder
 
 // The paragraph block accepts any non empty line, as it is assumed if it would've matched any other block
@@ -31,7 +33,7 @@ class Paragraph private constructor(parent: Container, indent: Int) : Leaf(paren
 
     override fun appendLine(line: String) {
         assert(match(line))
-        val trimmed = line.trim()
+        val trimmed = line.trimStart()
         val (isSetext, setextChar) = isSetext(trimmed)
         if (!ignoreSetext && isSetext && line.countLeadingSpaces() < 4) {
             this.close()
@@ -47,13 +49,29 @@ class Paragraph private constructor(parent: Container, indent: Int) : Leaf(paren
 
         with(builder) {
             append("<$tag>")
-            append(renderInline())
+            append(renderInlinePar())
             append("</$tag>\n")
         }
 
         return builder.toString()
     }
 
+    private fun renderInlinePar(): String{
+        val builder = StringBuilder()
+        with(builder) {
+            for ((index, inlineElement) in inline.withIndex()) {
+
+                if(index != inline.size - 1 && inlineElement is InlineString){
+                    // check if the next is a lineEnding
+                    val next = inline[index + 1]
+                        append(inlineElement.render(next is SoftBreak || next is HardBreak))
+                } else {
+                    append(inlineElement.render())
+                }
+            }
+        }
+        return builder.toString()
+    }
     private fun getHeadingLevel(): String = if (setextLevel == 1) "h1" else "h2"
 
     private fun isSetext(line: String): Pair<Boolean, Char> {
@@ -88,7 +106,7 @@ class Paragraph private constructor(parent: Container, indent: Int) : Leaf(paren
             // must be able to match to parse the line
             assert(this.match(line, currentOpenBlock, indentation))
             //remove leading and trailing spaces and return a new paragraph
-            return Paragraph(line.trim(), indentation, parent)
+            return Paragraph(line.trimStart(), indentation, parent)
         }
 
         // this will be the match to open a new paragraph block

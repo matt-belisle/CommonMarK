@@ -8,7 +8,7 @@ class InlineLexer(val line: String){
     private var index = 0
 
     fun isEndOfLine(): Boolean {
-        return index == line.length
+        return index == line.length - 1
     }
 
     fun inspect(char: Char): Boolean {
@@ -72,7 +72,7 @@ class InlineLexer(val line: String){
     fun goBackOne() = goBackX(1)
 
     fun goBackX(x: Int){
-        index - x
+        index -= x
         if(index < 0){
             index = 0
         }

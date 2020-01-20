@@ -1,0 +1,12 @@
+package com.matt.belisle.commonmark.ast.inlines
+
+import com.matt.belisle.commonmark.ast.BasicBlockTest
+import org.junit.Test
+
+class HardBreakTest : BasicBlockTest() {
+    @Test
+    fun specTest(){
+        specTest(630)
+        specTest("Hard line breaks")
+    }
+}

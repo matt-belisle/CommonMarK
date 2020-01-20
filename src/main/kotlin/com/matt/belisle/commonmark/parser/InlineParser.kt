@@ -2,10 +2,7 @@ package com.matt.belisle.commonmark.parser
 
 import com.matt.belisle.commonmark.ast.Document
 import com.matt.belisle.commonmark.ast.containerBlocks.Container
-import com.matt.belisle.commonmark.ast.inlineElements.HardBreak
-import com.matt.belisle.commonmark.ast.inlineElements.Inline
-import com.matt.belisle.commonmark.ast.inlineElements.InlineString
-import com.matt.belisle.commonmark.ast.inlineElements.SoftBreak
+import com.matt.belisle.commonmark.ast.inlineElements.*
 import com.matt.belisle.commonmark.ast.leafBlocks.Leaf
 import com.matt.belisle.commonmark.parser.inlineMatchers.InlineLexer
 import com.matt.belisle.commonmark.parser.inlineMatchers.InlineMatchers
@@ -16,6 +13,9 @@ import java.util.*
 import kotlin.random.Random
 // This is the basic Inline parsing logic, give it a list of inline tasks to do in order, and it will do them to all leaves
 // As spec says this can be done asynchronously so thats what we will do using coroutines
+// NOTE:: the parser can only accept custom inlines in the form of new delimiters for emphasis, ie surrounding text in a new delimiter
+// it will not be accepting new things like code spans (although similar could be done with emphasis)
+
 class InlineParser() {
     fun parse(document: Document): Document {
 
@@ -72,7 +72,8 @@ class InlineParser() {
      */
     fun analyzeLine(inlines: List<Inline>,
                     softBreak: Boolean = true,
-                    hardBreak: Boolean = true): List<Inline> {
+                    hardBreak: Boolean = true,
+                    codeSpans: Boolean = true): List<Inline> {
         // this will keep inlines in order of index on the string, this will require some fancy work to create the inlines successfully
         // I'm thinking a subString matcher on beginning and end then remaking all internal metadata with indexes shifted by start of outer container
         val inlineLocations: PriorityQueue<InlineMetaData> = PriorityQueue()
@@ -87,18 +88,18 @@ class InlineParser() {
                 val savedIndex = lexer.saveIndex()
                 // try to match a lineBreak
                 val matched = lineBreaks(lexer, savedIndex, hardBreak, softBreak)
-                if(matched.type != InlineTypes.NONE){
-                    inlineLocations.add(matched)
-                }
+                addInlineMetadata(matched, inlineLocations)
                 // reset state to where we were
                 lexer.goTo(savedIndex)
+            } else if(lexer.inspect('`')){
+                val savedIndex = lexer.saveIndex()
+                val matched = codeSpans(lexer, savedIndex, codeSpans)
+                addInlineMetadata(matched, inlineLocations)
             }
             // next character
             lexer.advanceCharacter()
         }
 
-        //TODO Obviously remove this... this just makes this function a noop
-        // makes a copy it is fine to have original references to parsed lines as they will be thrown out
         return createInlines(inlineLocations, toParse)
     }
 
@@ -115,7 +116,7 @@ class InlineParser() {
                 inlines.add(InlineString(line.substring(currentEnd, it.start)))
             }
             // make the next inline
-            inlines.add(createInline(it, line))
+            inlines.add(createInline(it, line.substring(it.start, it.end)))
             currentEnd = it.end + 1
         }
         if(currentEnd != line.length){
@@ -129,7 +130,14 @@ class InlineParser() {
         return when(inlineMetaData.type){
             InlineTypes.HARDBREAK -> HardBreak()
             InlineTypes.SOFTBREAK -> SoftBreak()
+            InlineTypes.CODESPAN -> CodeSpan(line)
             else -> throw ParsingException("Unknown inline type ${inlineMetaData.type}")
+        }
+    }
+
+    private fun addInlineMetadata(inlineMetaData: InlineMetaData, inlines: PriorityQueue<InlineMetaData>){
+        if(inlineMetaData.type != InlineTypes.NONE){
+            inlines.add(inlineMetaData)
         }
     }
 
@@ -137,7 +145,8 @@ class InlineParser() {
         if(hardBreak){
             // type one two or more spaces before \n
             val spaces = lexer.reverseWhile { it -> it.isWhitespace() }
-            if(spaces > 1){
+            // 2 as a newline is whitespace
+            if(spaces > 2){
                 // we have a hard line break from current index until savedIndex
                 return InlineMetaData(lexer.saveIndex(), savedIndex, InlineTypes.HARDBREAK)
             }
@@ -151,6 +160,56 @@ class InlineParser() {
         if(softBreak){
             // if it wasn't a hardbreak and we can do a softbreak than it must be a softbreak
             return InlineMetaData(savedIndex, savedIndex, InlineTypes.SOFTBREAK)
+        }
+        return InlineMetaData(savedIndex, savedIndex, InlineTypes.NONE)
+    }
+    /*
+     A backtick string is a string of one or more backtick characters (`) that is neither preceded nor followed by a backtick.
+
+A code span begins with a backtick string and ends with a backtick string of equal length.
+ The contents of the code span are the characters between the two backtick strings, normalized in the following ways:
+
+
+ First, line endings are converted to spaces.
+If the resulting string both begins and ends with a space character, but does not consist entirely of space characters,
+a single space character is removed from the front and back.
+This allows you to include code that begins or ends with backtick characters, which must be separated by whitespace from the opening or closing backtick strings.
+     */
+    private fun codeSpans(lexer: InlineLexer, savedIndex: Int, codeSpans: Boolean): InlineMetaData {
+        if(codeSpans){
+            if(lexer.inspect('`') && !lexer.isEndOfLine()) {
+                // our opening string of backticks
+                val run = lexer.advanceWhile { it == '`' }
+                // opening run was the end of the line
+                if(lexer.isEndOfLine()){
+                    //stops index out of bounds as analyzer always advances one
+                    lexer.goBackOne()
+                    return InlineMetaData(savedIndex, savedIndex, InlineTypes.NONE)
+                }
+                var closingRun: Int
+                // get the correct closing run
+                do {
+                    lexer.advanceWhile { it != '`' }
+                    closingRun = lexer.advanceWhile { it == '`' }
+                }while(closingRun != run && !lexer.isEndOfLine())
+                val addToEnd: Int
+                if(lexer.isEndOfLine() && lexer.inspect { it == '`' }){
+                    closingRun++
+                    addToEnd = 1
+                } else {
+                    addToEnd = 0
+                }
+                //make sure we got the closing run and not end of line
+                // note the end of the line could end with a code span so this is sufficient
+                // it will fall to noneType if this if statement doesn't return
+                if(closingRun == run){
+                    lexer.goBackOne()
+                    return InlineMetaData(savedIndex, lexer.saveIndex() + addToEnd, InlineTypes.CODESPAN)
+                } else {
+                    // we want to skip the run that was started, as to not double count the run with shorter length
+                    lexer.goTo(savedIndex + run)
+                }
+            }
         }
         return InlineMetaData(savedIndex, savedIndex, InlineTypes.NONE)
     }
