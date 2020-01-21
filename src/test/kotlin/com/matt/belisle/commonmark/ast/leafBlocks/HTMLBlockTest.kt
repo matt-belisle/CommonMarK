@@ -11,9 +11,6 @@ class HTMLBlockTest: BasicBlockTest(){
         // TODO 137 138 inline HTML
         // TODO 118 122 125 145 146 157 Emphasis
         // TODO 152 153 160 &gt replacement
-        specTest(133)
-        specTest(135)
-        specTest(136)
         specTest("HTML blocks")
     }
 }

@@ -18,7 +18,7 @@ class Lexer(val line: String){
     fun goBackOne() = index--
     fun inspect(f: (Char) -> Boolean) = f(line[index])
 
-    fun isAsciiChar(): Boolean = com.matt.belisle.commonmark.parser.inlineMatchers.isAsciiChar(line[index])
+    fun isAsciiChar(): Boolean = com.matt.belisle.commonmark.parser.inlineParsingUtil.isAsciiChar(line[index])
 
     fun advanceCharacter(amount: Int = 1){
         index += amount

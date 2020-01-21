@@ -1,6 +1,4 @@
-package com.matt.belisle.commonmark.parser.inlineMatchers
-
-import com.matt.belisle.commonmark.ast.leafBlocks.util.Lexer
+package com.matt.belisle.commonmark.parser.inlineParsingUtil
 
 //TODO combine with HTMLType7Matcher as this is just superset
 

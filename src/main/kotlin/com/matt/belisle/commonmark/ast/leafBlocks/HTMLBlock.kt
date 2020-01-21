@@ -4,7 +4,7 @@ import com.matt.belisle.commonmark.ast.*
 import com.matt.belisle.commonmark.ast.containerBlocks.Container
 import com.matt.belisle.commonmark.ast.inlineElements.InlineString
 import com.matt.belisle.commonmark.parser.InlineParser
-import com.matt.belisle.commonmark.parser.inlineMatchers.HTMLMatcher
+import com.matt.belisle.commonmark.parser.inlineParsingUtil.HTMLMatcher
 
 
 //private as to only allow the parse function in companion to construct a block

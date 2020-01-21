@@ -1,6 +1,5 @@
-package com.matt.belisle.commonmark.parser.inlineMatchers
+package com.matt.belisle.commonmark.parser.inlineParsingUtil
 
-import com.matt.belisle.commonmark.ast.inlineElements.Inline
 // custom elements may only add delimter types, not new inlines
 enum class InlineTypes{ SOFTBREAK,HARDBREAK, CODESPAN, BACKSLASH,
     WEAK_EMPHASIS, STRONG_EMPHASIS, ENTITY, IMAGE, RAW_HTML, AUTOLINK, LINK,NONE}

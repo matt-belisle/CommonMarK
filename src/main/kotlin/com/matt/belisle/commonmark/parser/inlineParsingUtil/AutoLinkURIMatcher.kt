@@ -1,4 +1,4 @@
-package com.matt.belisle.commonmark.parser.inlineMatchers
+package com.matt.belisle.commonmark.parser.inlineParsingUtil
 
 // performs a check for the URI Autolink
 

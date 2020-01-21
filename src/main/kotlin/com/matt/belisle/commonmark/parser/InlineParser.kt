@@ -4,10 +4,10 @@ import com.matt.belisle.commonmark.ast.Document
 import com.matt.belisle.commonmark.ast.containerBlocks.Container
 import com.matt.belisle.commonmark.ast.inlineElements.*
 import com.matt.belisle.commonmark.ast.leafBlocks.Leaf
-import com.matt.belisle.commonmark.parser.inlineMatchers.AutoLinkURIMatcher
-import com.matt.belisle.commonmark.parser.inlineMatchers.InlineLexer
-import com.matt.belisle.commonmark.parser.inlineMatchers.InlineMetaData
-import com.matt.belisle.commonmark.parser.inlineMatchers.InlineTypes
+import com.matt.belisle.commonmark.parser.inlineParsingUtil.AutoLinkURIMatcher
+import com.matt.belisle.commonmark.parser.inlineParsingUtil.InlineLexer
+import com.matt.belisle.commonmark.parser.inlineParsingUtil.InlineMetaData
+import com.matt.belisle.commonmark.parser.inlineParsingUtil.InlineTypes
 import kotlinx.coroutines.*
 import java.util.*
 // This is the basic Inline parsing logic, give it a list of inline tasks to do in order, and it will do them to all leaves
