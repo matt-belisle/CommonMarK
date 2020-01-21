@@ -58,7 +58,7 @@ class InlineLexer(val line: String){
         return stringBuilder.toString()
     }
 
-    fun restOfLineIsEmpty(): Boolean = line.trimEnd().length == index
+    fun restOfLineIsEmpty(): Boolean = isEndOfLine() || line.trimEnd().length == index
     //reusable, note not thread safe
     fun reset(){
         index = 0

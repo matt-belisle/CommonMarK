@@ -3,8 +3,8 @@ package com.matt.belisle.commonmark.ast.leafBlocks
 import com.matt.belisle.commonmark.ast.*
 import com.matt.belisle.commonmark.ast.containerBlocks.Container
 import com.matt.belisle.commonmark.ast.inlineElements.InlineString
-import com.matt.belisle.commonmark.ast.leafBlocks.util.HTMLType7Matcher
 import com.matt.belisle.commonmark.parser.InlineParser
+import com.matt.belisle.commonmark.parser.inlineMatchers.HTMLMatcher
 
 
 //private as to only allow the parse function in companion to construct a block
@@ -158,7 +158,7 @@ class HTMLBlock private constructor(parent: Container, indent: Int, private val 
             return startsWithRegex(line.toLowerCase(), """</?(address|article|aside|base|basefont|blockquote|body|caption|center|col|colgroup|dd|details|dialog|dir|div|dl|dt|fieldset|figcaption|figure|footer|form|frame|frameset|h1|h2|h3|h4|h5|h6|head|header|hr|html|iframe|legend|li|link|main|menu|menuitem|nav|noframes|ol|optgroup|option|p|param|section|source|summary|table|tbody|td|tfoot|th|thead|title|tr|track|ul)(\s|/>|>)""".toRegex(RegexOption.IGNORE_CASE))
         }
         private fun type7Match(line: String, currentOpenBlock: Block): Boolean {
-            return currentOpenBlock !is Paragraph && HTMLType7Matcher(line).startsWithMatch()
+            return currentOpenBlock !is Paragraph && HTMLMatcher(line).type7Matcher()
         }
         private fun startsWithRegex(line:String, regex: Regex): Boolean{
             val found = regex.find(line)

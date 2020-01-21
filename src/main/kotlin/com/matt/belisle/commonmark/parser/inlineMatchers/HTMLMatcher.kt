@@ -1,12 +1,23 @@
-package com.matt.belisle.commonmark.ast.leafBlocks.util
+package com.matt.belisle.commonmark.parser.inlineMatchers
+
+import com.matt.belisle.commonmark.ast.leafBlocks.util.Lexer
+
+//TODO combine with HTMLType7Matcher as this is just superset
+
 
 //Start condition: line begins with a complete open tag
 // (with any tag name other than script, style, or pre) or a complete closing tag, followed only by whitespace or the end of the line.
 // note that script style or pre are ran in type 1 which should always be ran before this so this doesn't account for that
-class HTMLType7Matcher(line: String) {
-    private val lexer = Lexer(line)
+class HTMLMatcher(line: String) {
+    private val lexer = InlineLexer(line)
 
+    //Inline Elements
     fun startsWithMatch(): Boolean{
+        return false
+    }
+
+    //For the HTML Leaf Block
+    fun type7Matcher(): Boolean {
         if(!lexer.inspect('<')){
             return false
         }
@@ -18,7 +29,6 @@ class HTMLType7Matcher(line: String) {
         } else {
             openTag()
         }
-
     }
     //An open tag consists of a < character, a tag name, zero or more attributes, optional whitespace, an optional / character, and a > character.
     private fun openTag(): Boolean{
@@ -42,7 +52,7 @@ class HTMLType7Matcher(line: String) {
             lexer.advanceCharacter()
         }
         // must have this to finish the tag
-        if(!lexer.inspect('>'))
+        if(!lexer.inspect{ it == '>' })
             return false
         lexer.advanceCharacter()
         return lexer.restOfLineIsEmpty()
@@ -57,11 +67,7 @@ class HTMLType7Matcher(line: String) {
         // optional so just remove if we can
         lexer.skipSpaces()
 
-        if(!lexer.inspect('>')){
-            return false
-        }
-        lexer.advanceCharacter()
-        return lexer.restOfLineIsEmpty()
+        return lexer.inspect(this::testClosingBrace)
 
     }
     // A tag name consists of an ASCII letter followed by zero or more ASCII letters, digits, or hyphens (-).
@@ -71,8 +77,8 @@ class HTMLType7Matcher(line: String) {
         }
         // one character is enough to be a valid tagName, so the advanceWhile will move the lexer to the point the name is done
         // (with any tag name other than script, style, or pre)
-        val tagName = lexer.returnMatchedWhile { com.matt.belisle.commonmark.parser.inlineMatchers.isAsciiChar(it) || it.isDigit() || it == '-'}
-        return !lexer.isEndOfLine() &&
+        val tagName = lexer.returnMatchedWhile { isAsciiChar(it) || it.isDigit() || it == '-'}
+        return (lexer.inspect(this::testClosingBrace) || !lexer.isEndOfLine()) &&
                 !(tagName.equals("script", true) ||
                         tagName.equals("style", true) ||
                         tagName.equals("pre", true))
@@ -98,7 +104,7 @@ class HTMLType7Matcher(line: String) {
         if(lexer.inspect('=') && !attributeValueSpecification()){
             return false
         }
-        return !lexer.isEndOfLine()
+        return lexer.inspect(this::testClosingBrace) || !lexer.isEndOfLine()
     }
 
     // An attribute value specification consists of optional whitespace,
@@ -121,7 +127,7 @@ class HTMLType7Matcher(line: String) {
             lexer.inspect('"') -> doubleQuotedAttributeValue()
             else -> unquotedAttributeValue()
         }
-        return !lexer.isEndOfLine()
+        return lexer.inspect(this::testClosingBrace) || !lexer.isEndOfLine()
     }
     //An unquoted attribute value is a nonempty string of characters not including whitespace, ", ', =, <, >, or `.
     private fun unquotedAttributeValue() {
@@ -162,9 +168,7 @@ class HTMLType7Matcher(line: String) {
         return !lexer.isEndOfLine()
     }
 
-    private fun testAttributeNameOpener(it: Char): Boolean = com.matt.belisle.commonmark.parser.inlineMatchers.isAsciiChar(
-        it
-    ) || it == '_'|| it == ':'
-
+    private fun testAttributeNameOpener(it: Char): Boolean = isAsciiChar(it) || it == '_'|| it == ':'
+    private fun testClosingBrace(it: Char): Boolean = it == '>'
 
 }
