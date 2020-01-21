@@ -3,6 +3,7 @@ package com.matt.belisle.commonmark.ast.leafBlocks
 import com.matt.belisle.commonmark.ast.Block
 import com.matt.belisle.commonmark.ast.IStaticMatchableLeaf
 import com.matt.belisle.commonmark.ast.containerBlocks.Container
+import com.matt.belisle.commonmark.parser.InlineParser
 import java.lang.Exception
 
 // The paragraph block accepts any non empty line, as it is assumed if it would've matched any other block
@@ -26,6 +27,10 @@ class BlankLine private constructor(parent: Container, indent: Int) : Leaf(paren
 
     override fun match(line: String): Boolean {
         return line.isBlank()
+    }
+
+    override fun analyzeInlines(inlineParser: InlineParser) {
+        //noop as no data
     }
 
     fun dropLastBlankLine(): BlankLine {

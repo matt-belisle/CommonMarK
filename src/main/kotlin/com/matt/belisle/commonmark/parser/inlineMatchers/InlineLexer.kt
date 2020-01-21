@@ -8,12 +8,14 @@ class InlineLexer(val line: String){
     private var index = 0
 
     fun isEndOfLine(): Boolean {
-        return index == line.length - 1
+        return index >= line.length - 1
     }
 
     fun inspect(char: Char): Boolean {
         return !isEndOfLine() && line[index] == char
     }
+
+    fun subString(start: Int, end: Int) = line.substring(start, end)
 
 
     fun inspect(f: (Char) -> Boolean) = f(line[index])

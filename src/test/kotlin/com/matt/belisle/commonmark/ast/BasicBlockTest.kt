@@ -3,10 +3,9 @@ package com.matt.belisle.commonmark.ast
 import com.matt.belisle.commonmark.TestCase
 import com.matt.belisle.commonmark.TestCases
 import com.matt.belisle.commonmark.parser.CommonMarkParser
-import junit.framework.Assert.assertFalse
+
 import org.junit.Assert
 import org.junit.ComparisonFailure
-import org.junit.Test
 
 abstract class BasicBlockTest {
     protected var document = Document()
@@ -42,6 +41,6 @@ abstract class BasicBlockTest {
                 failed = true
             }
         }
-        assertFalse(failed)
+        Assert.assertFalse(failed)
     }
 }

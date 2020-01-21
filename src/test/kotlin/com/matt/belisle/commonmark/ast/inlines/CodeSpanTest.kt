@@ -8,7 +8,7 @@ class CodeSpanTest : BasicBlockTest() {
     fun specTest(){
         //TODO 333 is an import issue, but should pass
         //TODO 343-346 need various other inlines to be parsable
-        specTest(347)
+        specTest(328)
         specTest("Code spans")
     }
 }

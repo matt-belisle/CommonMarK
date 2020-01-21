@@ -31,10 +31,19 @@ class Paragraph private constructor(parent: Container, indent: Int) : Leaf(paren
         return super.match(line) && line.isNotBlank()
     }
 
+    override fun close() {
+        super.close()
+        //remove final trailing spaces
+        val last = inline[inline.size -1] as InlineString
+        inline.removeAt(inline.size-1)
+        inline.add(InlineString(last.line.dropLastWhile { it.isWhitespace() }))
+
+    }
+
     override fun appendLine(line: String) {
         assert(match(line))
         val trimmed = line.trimStart()
-        val (isSetext, setextChar) = isSetext(trimmed)
+        val (isSetext, setextChar) = isSetext(trimmed.trimEnd())
         if (!ignoreSetext && isSetext && line.countLeadingSpaces() < 4) {
             this.close()
             setextLevel = if (setextChar == '=') 1 else 2
@@ -65,7 +74,8 @@ class Paragraph private constructor(parent: Container, indent: Int) : Leaf(paren
                     // check if the next is a lineEnding
                     val next = inline[index + 1]
                         append(inlineElement.render(next is SoftBreak || next is HardBreak))
-                } else {
+                }
+                else {
                     append(inlineElement.render())
                 }
             }

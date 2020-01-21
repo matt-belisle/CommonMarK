@@ -4,19 +4,18 @@ import com.matt.belisle.commonmark.ast.Document
 import com.matt.belisle.commonmark.ast.containerBlocks.Container
 import com.matt.belisle.commonmark.ast.inlineElements.*
 import com.matt.belisle.commonmark.ast.leafBlocks.Leaf
+import com.matt.belisle.commonmark.parser.inlineMatchers.AutoLinkURIMatcher
 import com.matt.belisle.commonmark.parser.inlineMatchers.InlineLexer
-import com.matt.belisle.commonmark.parser.inlineMatchers.InlineMatchers
 import com.matt.belisle.commonmark.parser.inlineMatchers.InlineMetaData
 import com.matt.belisle.commonmark.parser.inlineMatchers.InlineTypes
 import kotlinx.coroutines.*
 import java.util.*
-import kotlin.random.Random
 // This is the basic Inline parsing logic, give it a list of inline tasks to do in order, and it will do them to all leaves
 // As spec says this can be done asynchronously so thats what we will do using coroutines
 // NOTE:: the parser can only accept custom inlines in the form of new delimiters for emphasis, ie surrounding text in a new delimiter
 // it will not be accepting new things like code spans (although similar could be done with emphasis)
 
-class InlineParser() {
+class InlineParser {
     fun parse(document: Document): Document {
 
        runBlocking { parseLeaves(allLeaves(document)) }
@@ -73,7 +72,9 @@ class InlineParser() {
     fun analyzeLine(inlines: List<Inline>,
                     softBreak: Boolean = true,
                     hardBreak: Boolean = true,
-                    codeSpans: Boolean = true): List<Inline> {
+                    codeSpans: Boolean = true,
+                    backslashEscape: Boolean = true,
+                    autoLinks: Boolean = true): List<Inline> {
         // this will keep inlines in order of index on the string, this will require some fancy work to create the inlines successfully
         // I'm thinking a subString matcher on beginning and end then remaking all internal metadata with indexes shifted by start of outer container
         val inlineLocations: PriorityQueue<InlineMetaData> = PriorityQueue()
@@ -83,18 +84,34 @@ class InlineParser() {
         val lexer = InlineLexer(toParse)
 
         while(!lexer.isEndOfLine()){
+            val savedIndex = lexer.saveIndex()
             //softBreak and hardBreak
-            if(lexer.inspect('\n')){
-                val savedIndex = lexer.saveIndex()
-                // try to match a lineBreak
-                val matched = lineBreaks(lexer, savedIndex, hardBreak, softBreak)
-                addInlineMetadata(matched, inlineLocations)
-                // reset state to where we were
-                lexer.goTo(savedIndex)
-            } else if(lexer.inspect('`')){
-                val savedIndex = lexer.saveIndex()
-                val matched = codeSpans(lexer, savedIndex, codeSpans)
-                addInlineMetadata(matched, inlineLocations)
+            when {
+                lexer.inspect('\n') -> {
+
+                    // try to match a lineBreak
+                    val matched = lineBreaks(lexer, savedIndex, hardBreak, softBreak)
+                    addInlineMetadata(matched, inlineLocations)
+                    // reset state to where we were
+                    lexer.goTo(savedIndex)
+                }
+                lexer.inspect('`') -> {
+                    val matched = codeSpans(lexer, savedIndex, codeSpans)
+                    addInlineMetadata(matched, inlineLocations)
+                }
+                lexer.inspect('\\') -> {
+                    val matched = backslashEscape(lexer, savedIndex, backslashEscape)
+                    addInlineMetadata(matched, inlineLocations)
+                }
+                lexer.inspect ('<') -> {
+                    //this can be either HTML or autolink
+                    //TODO autolink first, may do some preprocessing as both are concerned with things between brackets
+                    val matchedAutoLink = autoLinks(lexer,savedIndex, autoLinks)
+                    addInlineMetadata(matchedAutoLink, inlineLocations)
+                    //TODO HTML
+
+                }
+                // next character
             }
             // next character
             lexer.advanceCharacter()
@@ -116,7 +133,7 @@ class InlineParser() {
                 inlines.add(InlineString(line.substring(currentEnd, it.start)))
             }
             // make the next inline
-            inlines.add(createInline(it, line.substring(it.start, it.end)))
+            inlines.add(createInline(it, line))
             currentEnd = it.end + 1
         }
         if(currentEnd != line.length){
@@ -130,7 +147,10 @@ class InlineParser() {
         return when(inlineMetaData.type){
             InlineTypes.HARDBREAK -> HardBreak()
             InlineTypes.SOFTBREAK -> SoftBreak()
-            InlineTypes.CODESPAN -> CodeSpan(line)
+            InlineTypes.CODESPAN -> CodeSpan(line.substring(inlineMetaData.start, inlineMetaData.end))
+            InlineTypes.BACKSLASH -> BackslashEscape(line[inlineMetaData.end])
+            // + 1 to remove leading <
+            InlineTypes.AUTOLINK -> AutoLink(line.substring(inlineMetaData.start + 1, inlineMetaData.end))
             else -> throw ParsingException("Unknown inline type ${inlineMetaData.type}")
         }
     }
@@ -144,10 +164,11 @@ class InlineParser() {
     private fun lineBreaks(lexer: InlineLexer, savedIndex: Int, hardBreak: Boolean, softBreak: Boolean): InlineMetaData {
         if(hardBreak){
             // type one two or more spaces before \n
-            val spaces = lexer.reverseWhile { it -> it.isWhitespace() }
+            val spaces = lexer.reverseWhile { it.isWhitespace() }
             // 2 as a newline is whitespace
             if(spaces > 2){
                 // we have a hard line break from current index until savedIndex
+                lexer.advanceCharacter()
                 return InlineMetaData(lexer.saveIndex(), savedIndex, InlineTypes.HARDBREAK)
             }
             lexer.goTo(savedIndex)
@@ -193,11 +214,11 @@ This allows you to include code that begins or ends with backtick characters, wh
                     closingRun = lexer.advanceWhile { it == '`' }
                 }while(closingRun != run && !lexer.isEndOfLine())
                 val addToEnd: Int
-                if(lexer.isEndOfLine() && lexer.inspect { it == '`' }){
+                addToEnd = if(lexer.isEndOfLine() && lexer.inspect { it == '`' }){
                     closingRun++
-                    addToEnd = 1
+                    1
                 } else {
-                    addToEnd = 0
+                    0
                 }
                 //make sure we got the closing run and not end of line
                 // note the end of the line could end with a code span so this is sufficient
@@ -211,6 +232,51 @@ This allows you to include code that begins or ends with backtick characters, wh
                 }
             }
         }
+        return InlineMetaData(savedIndex, savedIndex, InlineTypes.NONE)
+    }
+
+    private fun backslashEscape(lexer: InlineLexer, savedIndex: Int, backslashEscape: Boolean): InlineMetaData {
+        if(backslashEscape){
+            if(!lexer.isEndOfLine()){
+                lexer.advanceCharacter(1)
+                if(lexer.inspect { it in ESCAPABLE }){
+                    return InlineMetaData(savedIndex, savedIndex + 1, InlineTypes.BACKSLASH)
+                }
+            }
+        }
+        // didn't match so return parser to where it was
+        lexer.goTo(savedIndex)
+        return InlineMetaData(savedIndex, savedIndex, InlineTypes.NONE)
+    }
+
+    private fun autoLinks(lexer: InlineLexer, savedIndex: Int, autoLinks: Boolean): InlineMetaData {
+        if(autoLinks){
+            //there is two types but both are between '<' '>' so start by getting the string in the middle
+            if(lexer.inspect('<')){
+                lexer.advanceWhile { it != '>' }
+                // this check is because we may have gotten to the end of the line and not matched a '>'
+                if(lexer.inspect { it == '>' }){
+                    //the '>' was found so we may have a match
+                    // remove leading and trailing <>
+                    val subString = lexer.subString(savedIndex + 1, lexer.saveIndex())
+                    if(subString.isEmpty()){
+                        lexer.goTo(savedIndex)
+                        return InlineMetaData(savedIndex, savedIndex, InlineTypes.NONE)
+                    }
+
+                    // check the two types: Link and Mail
+
+                    // this will match type 1
+                    val autoLinkURIMatcher = AutoLinkURIMatcher(subString)
+                    // mail is just the regex in AutoLink
+                    if(autoLinkURIMatcher.match() || EMAIL_REGEX.matchEntire(subString) != null){
+                        return InlineMetaData(savedIndex, lexer.saveIndex(), InlineTypes.AUTOLINK)
+                    }
+                }
+            }
+        }
+        // didn't match so return parser to where it was
+        lexer.goTo(savedIndex)
         return InlineMetaData(savedIndex, savedIndex, InlineTypes.NONE)
     }
 }
