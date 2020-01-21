@@ -1544,7 +1544,7 @@
     "section": "Paragraphs"
   },
   {
-    "markdown": "   aaa\nbbb\n",
+    "markdown": "   aaa \nbbb\n",
     "html": "<p>aaa\nbbb</p>\n",
     "example": 194,
     "start_line": 3238,

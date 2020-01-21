@@ -21,7 +21,7 @@ class CommonMarkParser(
     private val visitors: List<com.matt.belisle.commonmark.visitors.Visitor>
 ) {
     private val blockParser: BlockParser = BlockParser(leaves, containers, visitors)
-
+    private val inlineParser = InlineParser()
     constructor() : this(
         listOf(
             HTMLBlock.Companion,
@@ -38,7 +38,7 @@ class CommonMarkParser(
 
     fun parse(data: List<String>): Document {
         // parse into blocks
-        return blockParser.parse(data)
+        return inlineParser.parse(blockParser.parse(data))
 
         //parse the inlines (can be done in parallel)
 
