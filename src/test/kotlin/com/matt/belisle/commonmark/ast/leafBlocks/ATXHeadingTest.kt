@@ -72,7 +72,8 @@ class ATXHeadingTest: BasicBlockTest() {
 
     @Test
     fun specTest(){
-        //TODO 37 36 35 all require inline parsing
+        //TODO 36 all require emphasis
+        specTest(49)
         specTest("ATX headings")
 //        specTest(35)
     }

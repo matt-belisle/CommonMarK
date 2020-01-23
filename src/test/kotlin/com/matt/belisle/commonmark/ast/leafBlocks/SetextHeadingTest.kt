@@ -7,7 +7,7 @@ class SetextHeadingTest: BasicBlockTest() {
     @Test
     fun specTests(){
         specTest(76)
-        //TODO 50 51 52 61 72 need inline
+        //TODO 50 51 52 need inline
         specTest("Setext headings")
     }
 }

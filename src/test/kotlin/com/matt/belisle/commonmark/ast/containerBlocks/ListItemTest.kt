@@ -8,7 +8,6 @@ class ListItemTest: BasicBlockTest(){
 
     @Test
     fun specTest() {
-        //TODO 259 fails because of '>' -> &gt parsing not happening yet
         specTest("List items")
     }
 }

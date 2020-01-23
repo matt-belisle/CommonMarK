@@ -29,7 +29,12 @@ class ATXHeading private constructor(val headingLevel: Int, indentation: Int, pa
     }
 
     override fun render(): String {
-        return "<h$headingLevel>${inline.first().render()}</h$headingLevel>\n"
+        val text = if(inline.isEmpty()) {
+            ""
+        } else {
+            inline.first().render()
+        }
+        return "<h$headingLevel>${text}</h$headingLevel>\n"
     }
 
     companion object : IStaticMatchableLeaf<ATXHeading> {

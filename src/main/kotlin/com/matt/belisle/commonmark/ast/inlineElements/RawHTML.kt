@@ -1,7 +1,7 @@
 package com.matt.belisle.commonmark.ast.inlineElements
 
-class HardBreak : Inline(){
+class RawHTML(val line: String) : Inline(){
     override fun render(entities: Boolean): String {
-        return "<br />\n"
+        return line
     }
 }

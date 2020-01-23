@@ -14,8 +14,17 @@ class InlineLexer(val line: String){
     fun inspect(char: Char): Boolean {
         return !isEndOfLine() && line[index] == char
     }
+    fun inspect(str:String): Boolean {
+        return if(index + str.length > line.length){
+            false
+        } else {
+            line.substring(index, index + str.length) == str
+        }
+
+    }
 
     fun subString(start: Int, end: Int) = line.substring(start, end)
+    fun subString(start: Int) = line.substring(start)
 
 
     fun inspect(f: (Char) -> Boolean) = f(line[index])
@@ -26,7 +35,7 @@ class InlineLexer(val line: String){
         index += amount
     }
     fun inspectWhitespace(): Boolean = line[index].isWhitespace()
-    fun skipSpaces() = advanceWhile { it.isWhitespace() }
+    fun skipSpaces() = advanceWhile { it.isWhitespace() || it == '\n'}
 
     // takes a predicate and continues until the predicate is false or end of line
     fun advanceWhile(f: (Char) -> Boolean): Int {

@@ -18,8 +18,8 @@ class CodeFenceTest: BasicBlockTest(){
 
     @Test
     fun specTest() {
-        //TODO 89 90 91 108 115 require inline parsing
+        specTest(89)
         specTest("Fenced code blocks")
-        specTest(112)
+
     }
 }

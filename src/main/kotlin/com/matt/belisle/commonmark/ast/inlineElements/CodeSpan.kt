@@ -2,6 +2,8 @@ package com.matt.belisle.commonmark.ast.inlineElements
 
 import com.matt.belisle.commonmark.ast.countLeadingChar
 import com.matt.belisle.commonmark.ast.countTrailingChar
+import com.matt.belisle.commonmark.parser.inlineParsingUtil.EntityReplacement
+import java.lang.StringBuilder
 
 // Represents a codespan
 class CodeSpan(str: String) : Inline(){
@@ -24,7 +26,19 @@ class CodeSpan(str: String) : Inline(){
         }
         this.code = normalized
     }
-    override fun render(): String {
+    override fun render(entity: Boolean): String {
+        val code = if(entity){
+            val entities = EntityReplacement.inspect(code, true)
+            val builder = StringBuilder()
+            with(builder){
+                entities.forEach {
+                    append(it.render())
+                }
+            }
+            builder.toString()
+        } else {
+            code
+        }
         return "<code>$code</code>"
     }
 }

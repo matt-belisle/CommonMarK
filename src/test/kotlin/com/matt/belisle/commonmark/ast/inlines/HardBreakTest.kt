@@ -8,7 +8,6 @@ class HardBreakTest : BasicBlockTest() {
     fun specTest(){
         specTest(630)
         //TODO 635,656 fail due to no emphasis
-        //TODO 639,640 fail due to HTML inlines
         specTest("Hard line breaks")
     }
 }

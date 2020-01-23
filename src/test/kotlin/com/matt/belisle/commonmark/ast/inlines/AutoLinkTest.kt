@@ -6,8 +6,8 @@ import org.junit.Test
 class AutoLinkTest : BasicBlockTest() {
     @Test
     fun specTest(){
-        specTest(594)
-        //TODO 591, 598, 599, 602-606 fail due to entity correction
+        specTest(603)
+        //TODO 599 fails due to URL Encoding...
         specTest("Autolinks")
     }
 }

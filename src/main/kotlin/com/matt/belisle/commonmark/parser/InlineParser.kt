@@ -4,10 +4,7 @@ import com.matt.belisle.commonmark.ast.Document
 import com.matt.belisle.commonmark.ast.containerBlocks.Container
 import com.matt.belisle.commonmark.ast.inlineElements.*
 import com.matt.belisle.commonmark.ast.leafBlocks.Leaf
-import com.matt.belisle.commonmark.parser.inlineParsingUtil.AutoLinkURIMatcher
-import com.matt.belisle.commonmark.parser.inlineParsingUtil.InlineLexer
-import com.matt.belisle.commonmark.parser.inlineParsingUtil.InlineMetaData
-import com.matt.belisle.commonmark.parser.inlineParsingUtil.InlineTypes
+import com.matt.belisle.commonmark.parser.inlineParsingUtil.*
 import kotlinx.coroutines.*
 import java.util.*
 // This is the basic Inline parsing logic, give it a list of inline tasks to do in order, and it will do them to all leaves
@@ -51,7 +48,8 @@ class InlineParser {
     }
 
     private fun elaborateInlines(inlines: List<Inline>): String{
-        return inlines.fold("", {acc, it -> "$acc${it.render()}\n"})
+        //should be only called on lists of inlineStrings
+        return inlines.fold("", {acc, it -> "$acc${(it as InlineString).line}\n"})
     }
 
     /* TODO: allow leaf to decide which inlines can be run on it, codeblocks and such still need
@@ -74,7 +72,8 @@ class InlineParser {
                     hardBreak: Boolean = true,
                     codeSpans: Boolean = true,
                     backslashEscape: Boolean = true,
-                    autoLinks: Boolean = true): List<Inline> {
+                    autoLinks: Boolean = true,
+                    html: Boolean = true): List<Inline> {
         // this will keep inlines in order of index on the string, this will require some fancy work to create the inlines successfully
         // I'm thinking a subString matcher on beginning and end then remaking all internal metadata with indexes shifted by start of outer container
         val inlineLocations: PriorityQueue<InlineMetaData> = PriorityQueue()
@@ -103,56 +102,22 @@ class InlineParser {
                     val matched = backslashEscape(lexer, savedIndex, backslashEscape)
                     addInlineMetadata(matched, inlineLocations)
                 }
-                lexer.inspect ('<') -> {
+                lexer.inspect('<') -> {
                     //this can be either HTML or autolink
-                    //TODO autolink first, may do some preprocessing as both are concerned with things between brackets
                     val matchedAutoLink = autoLinks(lexer,savedIndex, autoLinks)
                     addInlineMetadata(matchedAutoLink, inlineLocations)
-                    //TODO HTML
 
+                    if(matchedAutoLink.type == InlineTypes.NONE){
+                        val matchedHTML = html(lexer,"", savedIndex, html)
+                        addInlineMetadata(matchedHTML, inlineLocations)
+                    }
                 }
-                // next character
             }
             // next character
             lexer.advanceCharacter()
         }
 
         return createInlines(inlineLocations, toParse)
-    }
-
-    private fun createInlines(inlineMetaData: PriorityQueue<InlineMetaData>, line: String): List<Inline>{
-        // so we can do some inspection on it without losing when we pop
-        val list = inlineMetaData.toList()
-        val inlines = mutableListOf<Inline>()
-        // for simplicity until ones with internal inlines can be created none of these will have internals
-
-        // an Inline String will need to be created if the current ending is less than the next start
-        var currentEnd = 0
-        list.forEach {
-            if(currentEnd < it.start){
-                inlines.add(InlineString(line.substring(currentEnd, it.start)))
-            }
-            // make the next inline
-            inlines.add(createInline(it, line))
-            currentEnd = it.end + 1
-        }
-        if(currentEnd != line.length){
-            // add the final inlineString
-            inlines.add(InlineString(line.substring(currentEnd)))
-        }
-        return inlines
-    }
-
-    private fun createInline(inlineMetaData: InlineMetaData, line: String): Inline{
-        return when(inlineMetaData.type){
-            InlineTypes.HARDBREAK -> HardBreak()
-            InlineTypes.SOFTBREAK -> SoftBreak()
-            InlineTypes.CODESPAN -> CodeSpan(line.substring(inlineMetaData.start, inlineMetaData.end))
-            InlineTypes.BACKSLASH -> BackslashEscape(line[inlineMetaData.end])
-            // + 1 to remove leading <
-            InlineTypes.AUTOLINK -> AutoLink(line.substring(inlineMetaData.start + 1, inlineMetaData.end))
-            else -> throw ParsingException("Unknown inline type ${inlineMetaData.type}")
-        }
     }
 
     private fun addInlineMetadata(inlineMetaData: InlineMetaData, inlines: PriorityQueue<InlineMetaData>){
@@ -184,19 +149,20 @@ class InlineParser {
         }
         return InlineMetaData(savedIndex, savedIndex, InlineTypes.NONE)
     }
-    /*
-     A backtick string is a string of one or more backtick characters (`) that is neither preceded nor followed by a backtick.
 
-A code span begins with a backtick string and ends with a backtick string of equal length.
- The contents of the code span are the characters between the two backtick strings, normalized in the following ways:
-
-
- First, line endings are converted to spaces.
-If the resulting string both begins and ends with a space character, but does not consist entirely of space characters,
-a single space character is removed from the front and back.
-This allows you to include code that begins or ends with backtick characters, which must be separated by whitespace from the opening or closing backtick strings.
-     */
     private fun codeSpans(lexer: InlineLexer, savedIndex: Int, codeSpans: Boolean): InlineMetaData {
+        /*
+            A backtick string is a string of one or more backtick characters (`) that is neither preceded nor followed by a backtick.
+
+            A code span begins with a backtick string and ends with a backtick string of equal length.
+            The contents of the code span are the characters between the two backtick strings, normalized in the following ways:
+
+
+            First, line endings are converted to spaces.
+            If the resulting string both begins and ends with a space character, but does not consist entirely of space characters,
+            a single space character is removed from the front and back.
+            This allows you to include code that begins or ends with backtick characters, which must be separated by whitespace from the opening or closing backtick strings.
+        */
         if(codeSpans){
             if(lexer.inspect('`') && !lexer.isEndOfLine()) {
                 // our opening string of backticks
@@ -278,5 +244,58 @@ This allows you to include code that begins or ends with backtick characters, wh
         // didn't match so return parser to where it was
         lexer.goTo(savedIndex)
         return InlineMetaData(savedIndex, savedIndex, InlineTypes.NONE)
+    }
+
+    private fun html(lexer: InlineLexer, line: String, savedIndex: Int, html: Boolean): InlineMetaData{
+        if(html){
+            val htmlMatcher = HTMLMatcher(lexer.subString(savedIndex))
+            val (matched, newIndex) = htmlMatcher.startsWithMatch()
+            if(matched){
+                lexer.goTo(savedIndex + newIndex - 1)
+                return InlineMetaData(savedIndex, savedIndex + newIndex, InlineTypes.RAW_HTML)
+            }
+            lexer.goTo(savedIndex)
+            val falseReturn = InlineMetaData(savedIndex, savedIndex, InlineTypes.NONE)
+
+        }
+        return InlineMetaData(savedIndex, savedIndex, InlineTypes.NONE)
+    }
+}
+
+
+fun createInlines(inlineMetaData: PriorityQueue<InlineMetaData>, line: String): List<Inline>{
+    // so we can do some inspection on it without losing when we pop
+    val list = inlineMetaData.toList()
+    val inlines = mutableListOf<Inline>()
+    // for simplicity until ones with internal inlines can be created none of these will have internals
+
+    // an Inline String will need to be created if the current ending is less than the next start
+    var currentEnd = 0
+    list.forEach {
+        if(currentEnd < it.start){
+            inlines.add(InlineString(line.substring(currentEnd, it.start)))
+        }
+        // make the next inline
+        inlines.add(createInline(it, line))
+        currentEnd = it.end + 1
+    }
+    if(currentEnd != line.length){
+        // add the final inlineString
+        inlines.add(InlineString(line.substring(currentEnd)))
+    }
+    return inlines
+}
+
+fun createInline(inlineMetaData: InlineMetaData, line: String): Inline{
+    return when(inlineMetaData.type){
+        InlineTypes.HARDBREAK -> HardBreak()
+        InlineTypes.SOFTBREAK -> SoftBreak()
+        InlineTypes.CODESPAN -> CodeSpan(line.substring(inlineMetaData.start, inlineMetaData.end))
+        InlineTypes.BACKSLASH -> BackslashEscape(line[inlineMetaData.end])
+        // + 1 to remove leading <
+        InlineTypes.AUTOLINK -> AutoLink(line.substring(inlineMetaData.start + 1, inlineMetaData.end))
+        InlineTypes.RAW_HTML -> RawHTML(line.substring(inlineMetaData.start,inlineMetaData.end + 1))
+        InlineTypes.ENTITY -> InlineEntity(inlineMetaData.extra as Entity)
+        else -> throw ParsingException("Unknown inline type ${inlineMetaData.type}")
     }
 }

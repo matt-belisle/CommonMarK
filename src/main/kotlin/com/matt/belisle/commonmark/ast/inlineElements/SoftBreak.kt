@@ -4,7 +4,7 @@ package com.matt.belisle.commonmark.ast.inlineElements
 
 const val lineEnding = '\u000A'
 class SoftBreak: Inline() {
-    override fun render(): String {
+    override fun render(entities: Boolean): String {
         return lineEnding.toString()
     }
 }

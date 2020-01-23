@@ -55,6 +55,7 @@ class CodeFence private constructor(
         val analyzed = inlineParser.analyzeLine(infoString);
         infoString.clear()
         infoString.addAll(analyzed)
+
     }
 
     companion object : IStaticMatchableLeaf<CodeFence> {

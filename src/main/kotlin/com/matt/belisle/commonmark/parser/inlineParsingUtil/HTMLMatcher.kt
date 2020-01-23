@@ -1,8 +1,5 @@
 package com.matt.belisle.commonmark.parser.inlineParsingUtil
 
-//TODO combine with HTMLType7Matcher as this is just superset
-
-
 //Start condition: line begins with a complete open tag
 // (with any tag name other than script, style, or pre) or a complete closing tag, followed only by whitespace or the end of the line.
 // note that script style or pre are ran in type 1 which should always be ran before this so this doesn't account for that
@@ -10,9 +7,52 @@ class HTMLMatcher(line: String) {
     private val lexer = InlineLexer(line)
 
     //Inline Elements
-    fun startsWithMatch(): Boolean{
-        return false
+    fun startsWithMatch(): Pair<Boolean, Int>{
+        val match = rawHTML()
+        return if(match){
+            Pair(true, lexer.saveIndex())
+        } else{
+            Pair(false, 0)
+        }
     }
+    private fun rawHTML(): Boolean {
+        if(!lexer.inspect('<')){
+            return false
+        }
+        lexer.advanceCharacter()
+        return when {
+            lexer.inspect('/') -> {
+                lexer.advanceCharacter()
+                return closingTag()
+            }
+            lexer.inspect('!') -> {
+                lexer.advanceCharacter()
+                return when {
+                    lexer.inspect('-') -> {
+                        htmlComment()
+                    }
+                    lexer.inspect("[CDATA[") -> {
+                        cData()
+                    }
+                    else -> {
+                        declaration()
+                    }
+                }
+            }
+            lexer.inspect('?') -> {
+                lexer.advanceCharacter()
+                processingInstruction()
+            }
+            else -> {
+                val match = openTag()
+                if(match){
+                    lexer.goBackOne()
+                }
+                return match
+            }
+        }
+    }
+
 
     //For the HTML Leaf Block
     fun type7Matcher(): Boolean {
@@ -23,9 +63,16 @@ class HTMLMatcher(line: String) {
         // closing tag if the next character is /
         return if(lexer.inspect('/')){
             lexer.advanceCharacter()
-            closingTag()
+            closingTag() && lexer.isEndOfLine()
         } else {
-            openTag()
+            val openingTag = openTag()
+            if(openingTag && lexer.line.length == lexer.saveIndex()){
+                return true
+            }
+            if(openingTag && !lexer.inspect { it == '>' }){
+                lexer.goBackOne()
+                lexer.restOfLineIsEmpty()
+            } else openingTag && lexer.inspect { it == '>' }
         }
     }
     //An open tag consists of a < character, a tag name, zero or more attributes, optional whitespace, an optional / character, and a > character.
@@ -50,10 +97,11 @@ class HTMLMatcher(line: String) {
             lexer.advanceCharacter()
         }
         // must have this to finish the tag
-        if(!lexer.inspect{ it == '>' })
+        if(!lexer.inspect{ it == '>' }) {
             return false
+        }
         lexer.advanceCharacter()
-        return lexer.restOfLineIsEmpty()
+        return true
     }
 
     //A closing tag consists of the string </, a tag name, optional whitespace, and the character >.
@@ -120,10 +168,20 @@ class HTMLMatcher(line: String) {
     //An attribute value consists of an unquoted attribute value,
     // a single-quoted attribute value, or a double-quoted attribute value.
     private fun attributeValue(): Boolean {
+        val char = lexer.line[lexer.saveIndex()]
         when {
             lexer.inspect('\'') -> singleQuotedAttributeValue()
             lexer.inspect('"') -> doubleQuotedAttributeValue()
             else -> unquotedAttributeValue()
+        }
+        if((char == '\'' || char == '"')) {
+            if ( !lexer.inspect { it == char }){
+                return false
+            } else{
+                if (!lexer.isEndOfLine()) {
+                    lexer.advanceCharacter()
+                }
+            }
         }
         return lexer.inspect(this::testClosingBrace) || !lexer.isEndOfLine()
     }
@@ -136,22 +194,15 @@ class HTMLMatcher(line: String) {
         // pre check the initial quote
         lexer.advanceCharacter()
         lexer.advanceWhile { it != '"' }
-        if(lexer.isEndOfLine())
-            return
-        else {
-            lexer.advanceCharacter()
-        }
+
+
     }
     //A single-quoted attribute value consists of ', zero or more characters not including ', and a final '.
     private fun singleQuotedAttributeValue() {
         // pre check the initial quote
         lexer.advanceCharacter()
         lexer.advanceWhile { it != '\'' }
-        if(lexer.isEndOfLine())
-            return
-        else {
-            lexer.advanceCharacter()
-        }
+
     }
 
     // An attribute name consists of an ASCII letter, _, or :,
@@ -165,6 +216,58 @@ class HTMLMatcher(line: String) {
         lexer.advanceWhile { testAttributeNameOpener(it) || it.isDigit() || it == '.' || it == '-' }
         return !lexer.isEndOfLine()
     }
+
+    private fun htmlComment(): Boolean {
+        val startingDashes = lexer.advanceWhile { it == '-' }
+        if(startingDashes != 2 || lexer.inspect { it == '>' }){
+            return false
+        }
+        var dashes: Int
+        do {
+            lexer.advanceWhile { it != '-' }
+            dashes = lexer.advanceWhile { it == '-' }
+        }while(dashes != 2 && !lexer.isEndOfLine())
+        if(dashes != 2){
+            return false
+        }
+        if(lexer.inspect { it == '>' }){
+            return true
+        }
+        return false
+    }
+
+
+    private fun cData(): Boolean {
+        do {
+            lexer.advanceWhile { it != ']' }
+        } while(lexer.isEndOfLine())
+        return if(lexer.inspect("]]>")){
+            lexer.advanceCharacter(2)
+            true
+        }else {
+            false
+        }
+    }
+
+    private fun processingInstruction(): Boolean {
+        do {
+            lexer.advanceWhile { it != '?' }
+        } while(lexer.isEndOfLine() && !lexer.inspect(">"))
+        lexer.advanceCharacter()
+        return lexer.inspect {it == '>'}
+    }
+
+    private fun declaration(): Boolean {
+        // uppercase name followed by whitespace
+        lexer.advanceWhile { it.isUpperCase() }
+        if(!lexer.inspectWhitespace()){
+            return false
+        }
+        lexer.advanceWhile { it != '>' }
+        // its either at the end of the line or not this will still work
+        return lexer.inspect { it == '>'}
+    }
+
 
     private fun testAttributeNameOpener(it: Char): Boolean = isAsciiChar(it) || it == '_'|| it == ':'
     private fun testClosingBrace(it: Char): Boolean = it == '>'

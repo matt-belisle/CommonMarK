@@ -13,6 +13,7 @@ class HTMLBlock private constructor(parent: Container, indent: Int, private val 
 
     init {
         appendLine(line)
+        closeHTMLBasedOnType(line)
     }
 
     // this is the match to continue a paragraph block
@@ -33,7 +34,7 @@ class HTMLBlock private constructor(parent: Container, indent: Int, private val 
         val builder = StringBuilder()
         with(builder){
             inline.forEach {
-                append(it.render())
+                append(it.render(false))
                 builder.append('\n')
             }
         }
@@ -97,7 +98,7 @@ class HTMLBlock private constructor(parent: Container, indent: Int, private val 
         override fun parse(line: String, currentOpenBlock: Block, indentation: Int, parent: Container): HTMLBlock {
             // must be able to match to parse the line
             val trimmed = line.removeLeadingChar(' ', indentation)
-            return HTMLBlock(parent, indentation, matchWithType(line, currentOpenBlock).second, trimmed)
+            return HTMLBlock(parent, indentation, matchWithType(line.trimStart(), currentOpenBlock).second, trimmed)
         }
 
         // this will be the match to open a new paragraph block

@@ -73,7 +73,7 @@ class Paragraph private constructor(parent: Container, indent: Int) : Leaf(paren
                 if(index != inline.size - 1 && inlineElement is InlineString){
                     // check if the next is a lineEnding
                     val next = inline[index + 1]
-                        append(inlineElement.render(next is SoftBreak || next is HardBreak))
+                        append(inlineElement.render(trimEnd = (next is SoftBreak || next is HardBreak), entity = true))
                 }
                 else {
                     append(inlineElement.render())
