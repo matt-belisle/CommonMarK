@@ -48,7 +48,7 @@ class Paragraph private constructor(parent: Container, indent: Int) : Leaf(paren
             this.close()
             setextLevel = if (setextChar == '=') 1 else 2
             this.isSetext = true
-        } else inline.add(InlineString(trimmed))
+        } else (inline[0] as InlineString).append(line)
         ignoreSetext = false
     }
 
