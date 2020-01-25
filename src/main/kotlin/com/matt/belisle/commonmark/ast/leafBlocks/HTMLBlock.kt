@@ -9,6 +9,11 @@ import com.matt.belisle.commonmark.parser.inlineParsingUtil.HTMLMatcher
 
 //private as to only allow the parse function in companion to construct a block
 private enum class HTMLBlockType {TYPE1, TYPE2, TYPE3, TYPE4, TYPE5, TYPE6, TYPE7}
+val type1OpenRegex = """<(script|pre|style)(\w|>?)""".toRegex()
+val type1CloseRegex = """</(script|pre|style)(\w|>?)""".toRegex()
+val type6Regex = """</?(address|article|aside|base|basefont|blockquote|body|caption|center|col|colgroup|dd|details|dialog|dir|div|dl|dt|fieldset|figcaption|figure|footer|form|frame|frameset|h1|h2|h3|h4|h5|h6|head|header|hr|html|iframe|legend|li|link|main|menu|menuitem|nav|noframes|ol|optgroup|option|p|param|section|source|summary|table|tbody|td|tfoot|th|thead|title|tr|track|ul)(\s|/>|>)""".toRegex(RegexOption.IGNORE_CASE)
+val type3Regex = """\?>""".toRegex()
+val type4Regex = """<![A-Z]""".toRegex()
 class HTMLBlock private constructor(parent: Container, indent: Int, private val htmlBlockType: HTMLBlockType, line: String) : Leaf(parent = parent, indent = indent) {
 
     init {
@@ -23,10 +28,15 @@ class HTMLBlock private constructor(parent: Container, indent: Int, private val 
 
     override fun appendLine(line: String) {
         assert(match(line))
-        inline.add(InlineString(line))
         if(closeHTMLBasedOnType(line) && line.isBlank()){
             // do not include trailing blank line
-            inline.removeAt(inline.lastIndex)
+            return
+        }
+        if(inline.size == 0){
+            inline.add(InlineString(line))
+
+        } else {
+            (inline[0] as InlineString).append(line)
         }
     }
 
@@ -63,7 +73,7 @@ class HTMLBlock private constructor(parent: Container, indent: Int, private val 
     }
 
     private fun closeType1(line: String): Boolean{
-        return regexContains(line, """</(script|pre|style)>""".toRegex())
+        return regexContains(line, type1CloseRegex)
     }
 
     private fun closeType2(line:String): Boolean {
@@ -71,7 +81,7 @@ class HTMLBlock private constructor(parent: Container, indent: Int, private val 
     }
 
     private fun closeType3(line:String): Boolean {
-        return regexContains(line, """\?>""".toRegex())
+        return regexContains(line, type3Regex )
     }
 
     private fun closeType4(line:String): Boolean {
@@ -138,7 +148,7 @@ class HTMLBlock private constructor(parent: Container, indent: Int, private val 
             //regex match this
 
             //TODO make into java patterns so it is only compiled once at startup
-            return startsWithRegex(line.toLowerCase(), """<(script|pre|style)(\w|>?)""".toRegex())
+            return startsWithRegex(line.toLowerCase(), type1OpenRegex )
         }
 
         private fun type2Match(line: String): Boolean {
@@ -149,14 +159,14 @@ class HTMLBlock private constructor(parent: Container, indent: Int, private val 
             return line.startsWith("<?")
         }
         private fun type4Match(line: String): Boolean {
-            return startsWithRegex(line, """<![A-Z]""".toRegex())
+            return startsWithRegex(line, type4Regex)
         }
         private fun type5Match(line: String): Boolean {
             return line.startsWith("<![CDATA[")
         }
         private fun type6Match(line: String): Boolean {
             // case insensitive
-            return startsWithRegex(line.toLowerCase(), """</?(address|article|aside|base|basefont|blockquote|body|caption|center|col|colgroup|dd|details|dialog|dir|div|dl|dt|fieldset|figcaption|figure|footer|form|frame|frameset|h1|h2|h3|h4|h5|h6|head|header|hr|html|iframe|legend|li|link|main|menu|menuitem|nav|noframes|ol|optgroup|option|p|param|section|source|summary|table|tbody|td|tfoot|th|thead|title|tr|track|ul)(\s|/>|>)""".toRegex(RegexOption.IGNORE_CASE))
+            return startsWithRegex(line.toLowerCase(), type6Regex )
         }
         private fun type7Match(line: String, currentOpenBlock: Block): Boolean {
             return currentOpenBlock !is Paragraph && HTMLMatcher(line).type7Matcher()

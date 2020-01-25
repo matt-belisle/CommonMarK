@@ -28,11 +28,15 @@ class CodeFence private constructor(
         val removeIndent = line.removeLeadingChar(' ', fenceIndent)
         val trimmed = line.trim()
         val leadingFenceChar = trimmed.countLeadingChar(fenceChar)
+
         // close if the closing fence block is found
         if (line.countLeadingSpaces() < indentCheck(indent) && leadingFenceChar >= fenceLength && leadingFenceChar == trimmed.length) {
             close()
-        } else {
+        }else if(inline.size ==  0){
             inline.add(InlineString(removeIndent))
+            return
+        } else {
+            (inline[0] as InlineString).append(removeIndent)
         }
     }
 

@@ -36,7 +36,7 @@ class Paragraph private constructor(parent: Container, indent: Int) : Leaf(paren
         //remove final trailing spaces
         val last = inline[inline.size -1] as InlineString
         inline.removeAt(inline.size-1)
-        inline.add(InlineString(last.line.dropLastWhile { it.isWhitespace() }))
+        inline.add(InlineString(last.strBuilder.dropLastWhile { it.isWhitespace() }.toString()))
 
     }
 
@@ -48,7 +48,7 @@ class Paragraph private constructor(parent: Container, indent: Int) : Leaf(paren
             this.close()
             setextLevel = if (setextChar == '=') 1 else 2
             this.isSetext = true
-        } else (inline[0] as InlineString).append(line)
+        } else (inline[0] as InlineString).append(line.trimStart())
         ignoreSetext = false
     }
 
@@ -67,6 +67,7 @@ class Paragraph private constructor(parent: Container, indent: Int) : Leaf(paren
 
     private fun renderInlinePar(): String{
         val builder = StringBuilder()
+
         with(builder) {
             for ((index, inlineElement) in inline.withIndex()) {
 
@@ -75,7 +76,9 @@ class Paragraph private constructor(parent: Container, indent: Int) : Leaf(paren
                     val next = inline[index + 1]
                         append(inlineElement.render(trimEnd = (next is SoftBreak || next is HardBreak), entity = true))
                 }
-                else {
+                else if(index == inline.size - 1 && inlineElement is InlineString) {
+                    append(inlineElement.render(trimStart = true, trimEnd = false, entity = true))
+                }else {
                     append(inlineElement.render())
                 }
             }

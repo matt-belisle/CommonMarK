@@ -15,7 +15,7 @@ class ParagraphTest: BasicBlockTest() {
         val pass = Paragraph.parse(testString, this.document,0, document)
         assertEquals(pass.inline.size, 1)
         assertEquals(pass.inline[0]::class, InlineString::class)
-        assertEquals((Paragraph.parse(testString, this.document, 0, document).inline[0] as InlineString).line, testString)
+        assertEquals((Paragraph.parse(testString, this.document, 0, document).inline[0] as InlineString).strBuilder.toString(), testString)
     }
 
     @Test(expected = AssertionError::class)

@@ -46,10 +46,10 @@ class InlineParser {
         }
         return ret
     }
-
+    // this is a lot of the CPU time
     private fun elaborateInlines(inlines: List<Inline>): String{
         //should be only called on lists of inlineStrings
-        return inlines.fold("", {acc, it -> "$acc${(it as InlineString).line}\n"})
+        return (inlines[0] as InlineString).strBuilder.toString()
     }
 
     /* TODO: allow leaf to decide which inlines can be run on it, codeblocks and such still need
@@ -79,7 +79,7 @@ class InlineParser {
         val inlineLocations: PriorityQueue<InlineMetaData> = PriorityQueue()
 
         // remove final \n
-        val toParse = elaborateInlines(inlines).dropLast(1)
+        val toParse = elaborateInlines(inlines)
         val lexer = InlineLexer(toParse)
 
         while(!lexer.isEndOfLine()){
@@ -134,18 +134,18 @@ class InlineParser {
             if(spaces > 2){
                 // we have a hard line break from current index until savedIndex
                 lexer.advanceCharacter()
-                return InlineMetaData(lexer.saveIndex(), savedIndex, InlineTypes.HARDBREAK)
+                return InlineMetaData(lexer.saveIndex(), savedIndex, InlineTypes.HARD_BREAK)
             }
             lexer.goTo(savedIndex)
             // type two a \ immediately before the \n
             lexer.goBackOne()
             if(lexer.inspect('\\')){
-                return InlineMetaData(lexer.saveIndex(), savedIndex, InlineTypes.HARDBREAK)
+                return InlineMetaData(lexer.saveIndex(), savedIndex, InlineTypes.HARD_BREAK)
             }
         }
         if(softBreak){
             // if it wasn't a hardbreak and we can do a softbreak than it must be a softbreak
-            return InlineMetaData(savedIndex, savedIndex, InlineTypes.SOFTBREAK)
+            return InlineMetaData(savedIndex, savedIndex, InlineTypes.SOFT_BREAK)
         }
         return InlineMetaData(savedIndex, savedIndex, InlineTypes.NONE)
     }
@@ -191,7 +191,7 @@ class InlineParser {
                 // it will fall to noneType if this if statement doesn't return
                 if(closingRun == run){
                     lexer.goBackOne()
-                    return InlineMetaData(savedIndex, lexer.saveIndex() + addToEnd, InlineTypes.CODESPAN)
+                    return InlineMetaData(savedIndex, lexer.saveIndex() + addToEnd, InlineTypes.CODE_SPAN)
                 } else {
                     // we want to skip the run that was started, as to not double count the run with shorter length
                     lexer.goTo(savedIndex + run)
@@ -236,7 +236,7 @@ class InlineParser {
                     val autoLinkURIMatcher = AutoLinkURIMatcher(subString)
                     // mail is just the regex in AutoLink
                     if(autoLinkURIMatcher.match() || EMAIL_REGEX.matchEntire(subString) != null){
-                        return InlineMetaData(savedIndex, lexer.saveIndex(), InlineTypes.AUTOLINK)
+                        return InlineMetaData(savedIndex, lexer.saveIndex(), InlineTypes.AUTO_LINK)
                     }
                 }
             }
@@ -288,12 +288,12 @@ fun createInlines(inlineMetaData: PriorityQueue<InlineMetaData>, line: String): 
 
 fun createInline(inlineMetaData: InlineMetaData, line: String): Inline{
     return when(inlineMetaData.type){
-        InlineTypes.HARDBREAK -> HardBreak()
-        InlineTypes.SOFTBREAK -> SoftBreak()
-        InlineTypes.CODESPAN -> CodeSpan(line.substring(inlineMetaData.start, inlineMetaData.end))
+        InlineTypes.HARD_BREAK -> HardBreak()
+        InlineTypes.SOFT_BREAK -> SoftBreak()
+        InlineTypes.CODE_SPAN -> CodeSpan(line.substring(inlineMetaData.start, inlineMetaData.end))
         InlineTypes.BACKSLASH -> BackslashEscape(line[inlineMetaData.end])
         // + 1 to remove leading <
-        InlineTypes.AUTOLINK -> AutoLink(line.substring(inlineMetaData.start + 1, inlineMetaData.end))
+        InlineTypes.AUTO_LINK -> AutoLink(line.substring(inlineMetaData.start + 1, inlineMetaData.end))
         InlineTypes.RAW_HTML -> RawHTML(line.substring(inlineMetaData.start,inlineMetaData.end + 1))
         InlineTypes.ENTITY -> InlineEntity(inlineMetaData.extra as Entity)
         else -> throw ParsingException("Unknown inline type ${inlineMetaData.type}")

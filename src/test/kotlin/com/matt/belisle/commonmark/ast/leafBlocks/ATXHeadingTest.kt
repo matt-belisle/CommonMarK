@@ -57,7 +57,7 @@ class ATXHeadingTest: BasicBlockTest() {
             val ATX = ATXHeading.parse(it.first, this.document,0, document)
 
             val text = ATX.inline[0] as InlineString
-            assertEquals("Parsed String ${text.line}, is not equal to the correct String ${it.second}", text.line, it.second)
+            assertEquals("Parsed String ${text.strBuilder}, is not equal to the correct String ${it.second}", text.strBuilder, it.second)
 
             assertEquals("Parsed heading level is incorrect ${ATX.headingLevel}, should be: ${it.third}",ATX.headingLevel, it.third)
 
@@ -73,7 +73,7 @@ class ATXHeadingTest: BasicBlockTest() {
     @Test
     fun specTest(){
         //TODO 36 all require emphasis
-        specTest(49)
+        specTest(40)
         specTest("ATX headings")
 //        specTest(35)
     }

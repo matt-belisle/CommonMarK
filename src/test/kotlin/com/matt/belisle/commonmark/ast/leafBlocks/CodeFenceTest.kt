@@ -18,7 +18,7 @@ class CodeFenceTest: BasicBlockTest(){
 
     @Test
     fun specTest() {
-        specTest(89)
+        specTest(100)
         specTest("Fenced code blocks")
 
     }

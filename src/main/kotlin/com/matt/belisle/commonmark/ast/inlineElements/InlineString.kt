@@ -1,15 +1,16 @@
 package com.matt.belisle.commonmark.ast.inlineElements
 
 import com.matt.belisle.commonmark.parser.inlineParsingUtil.EntityReplacement
-import java.lang.StringBuilder
+import kotlin.text.StringBuilder
 
 // just a string, either no inlines parsed or the text contained needs no special rendering
-class InlineString(val line: String) : Inline() {
-
+class InlineString(line: String) : Inline() {
+    val strBuilder = StringBuilder(line)
     override fun render(entities: Boolean): String {
-        return render(false, entities)
+        return render(trimStart = false, trimEnd = false, entity = entities)
     }
-    fun render(trimEnd: Boolean, entity: Boolean): String{
+    fun render(trimStart: Boolean = false, trimEnd: Boolean = false, entity: Boolean): String{
+        val line = strBuilder.toString()
         if(!entity || line.isEmpty()){
             if(trimEnd){
                 return line.trimEnd()
@@ -41,6 +42,10 @@ class InlineString(val line: String) : Inline() {
 
         return builder.toString()
 
+    }
+    fun append(line:String){
+        strBuilder.append("\n")
+        strBuilder.append(line)
     }
 
 }

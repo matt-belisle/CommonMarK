@@ -10,6 +10,8 @@ import com.matt.belisle.commonmark.ast.containerBlocks.ListItem
 import com.matt.belisle.commonmark.ast.leafBlocks.*
 import com.matt.belisle.commonmark.visitors.listVisitors.BlankLinePropagationVisitor
 import com.matt.belisle.commonmark.visitors.listVisitors.CreateListBlockVisitor
+import java.time.Duration
+import java.time.Instant
 
 
 // leaves are the leaves that can be parsed to, blocks in descending order of precedence,
@@ -38,6 +40,11 @@ class CommonMarkParser(
 
     fun parse(data: List<String>): Document {
         // parse into blocks
+//        val begin = Instant.now()
+//        val doc = blockParser.parse(data)
+//        val end = Instant.now()
+//        println("TotalTime: ${Duration.between(begin, end)}")
+//        return inlineParser.parse(doc)
         return inlineParser.parse(blockParser.parse(data))
 
         //parse the inlines (can be done in parallel)

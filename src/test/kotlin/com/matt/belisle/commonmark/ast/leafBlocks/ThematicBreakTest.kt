@@ -54,7 +54,7 @@ class ThematicBreakTest: BasicBlockTest() {
             val thematicBreak = ThematicBreak.parse(it.first, this.document, 0, document)
 
             assertEquals( it.second, thematicBreak.thematicBreakChar)
-            assertEquals( it.first, (thematicBreak.inline[0] as InlineString).line)
+            assertEquals( it.first, (thematicBreak.inline[0] as InlineString).strBuilder.toString())
         }
     }
 
