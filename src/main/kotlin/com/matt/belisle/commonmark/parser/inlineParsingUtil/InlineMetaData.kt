@@ -7,9 +7,14 @@ enum class InlineTypes{ SOFT_BREAK,HARD_BREAK, CODE_SPAN, BACKSLASH,
 // a lot of processing done to determine whats what at the time of parsing, so we may as well use that
 // most types wont use it but the ones that should, will
 // this could be used to whitelist html tags for example...
-data class InlineMetaData(val start: Int,val end: Int, val type: InlineTypes, val extra: Any = false): Comparable<InlineMetaData> {
+data class InlineMetaData(var start: Int, var end: Int, val type: InlineTypes, var extra: Any = false): Comparable<InlineMetaData> {
     override fun compareTo(other: InlineMetaData): Int {
-        // others will be before it if it starts earlier
-        return start.compareTo(other.start)
+        // basically these will be put into a priority queue
+        // if they are the same start (emphasis) we would like to see the longer one first
+        return if(start == other.start){
+            other.end.compareTo(end)
+        } else {
+            start.compareTo(other.start)
+        }
     }
 }

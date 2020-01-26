@@ -13,11 +13,4 @@ class BlockQuoteTest: BasicBlockTest(){
         specTest("Block quotes")
 
     }
-
-    @Test
-    fun testThis(){
-        specTest(
-            TestCase("> foo\n``` bar\n", "",0,0,0,"")
-        )
-    }
 }

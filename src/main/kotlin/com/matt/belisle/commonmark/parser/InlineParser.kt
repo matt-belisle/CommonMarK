@@ -73,51 +73,122 @@ class InlineParser {
                     codeSpans: Boolean = true,
                     backslashEscape: Boolean = true,
                     autoLinks: Boolean = true,
-                    html: Boolean = true): List<Inline> {
+                    html: Boolean = true, delimiters: List<Emphasis<*>> = listOf(EmphasisUnderscore.Companion, EmphasisAsterisk.Companion)): List<Inline> {
         // this will keep inlines in order of index on the string, this will require some fancy work to create the inlines successfully
         // I'm thinking a subString matcher on beginning and end then remaking all internal metadata with indexes shifted by start of outer container
         val inlineLocations: PriorityQueue<InlineMetaData> = PriorityQueue()
 
-        // remove final \n
+        // get map of character to emphasis run, emphasis should not be ran is delimiters is empty
+        val emphasis = delimiters.isNotEmpty()
+
+        val runCreators: MutableMap<Char, (Int, Char, Char, Int) -> Run> = mutableMapOf()
+        for(item in delimiters){
+            runCreators[item.delimiter] = item::makeRun
+        }
+        val validDelimiters = runCreators.keys
+        val emphasisRuns = DelimiterLinkedList<Run>()
+
         val toParse = elaborateInlines(inlines)
         val lexer = InlineLexer(toParse)
 
         while(!lexer.isEndOfLine()){
-            val savedIndex = lexer.saveIndex()
-            //softBreak and hardBreak
-            when {
-                lexer.inspect('\n') -> {
-
-                    // try to match a lineBreak
-                    val matched = lineBreaks(lexer, savedIndex, hardBreak, softBreak)
-                    addInlineMetadata(matched, inlineLocations)
-                    // reset state to where we were
-                    lexer.goTo(savedIndex)
-                }
-                lexer.inspect('`') -> {
-                    val matched = codeSpans(lexer, savedIndex, codeSpans)
-                    addInlineMetadata(matched, inlineLocations)
-                }
-                lexer.inspect('\\') -> {
-                    val matched = backslashEscape(lexer, savedIndex, backslashEscape)
-                    addInlineMetadata(matched, inlineLocations)
-                }
-                lexer.inspect('<') -> {
-                    //this can be either HTML or autolink
-                    val matchedAutoLink = autoLinks(lexer,savedIndex, autoLinks)
-                    addInlineMetadata(matchedAutoLink, inlineLocations)
-
-                    if(matchedAutoLink.type == InlineTypes.NONE){
-                        val matchedHTML = html(lexer,"", savedIndex, html)
-                        addInlineMetadata(matchedHTML, inlineLocations)
-                    }
-                }
-            }
+            inspectCharacter(
+                lexer,
+                hardBreak,
+                softBreak,
+                inlineLocations,
+                codeSpans,
+                backslashEscape,
+                autoLinks,
+                html,
+                validDelimiters,
+                runCreators,
+                emphasisRuns
+            )
             // next character
             lexer.advanceCharacter()
         }
+        // final character missed by above loop, but the final character may have been used by the final inline
+        val lastInlinesEnd = if(inlineLocations.isNotEmpty()) inlineLocations.last().end else -1
+        if(lexer.saveIndex() == lexer.line.length - 1 && lastInlinesEnd < lexer.saveIndex()){
+            inspectCharacter(
+                lexer,
+                hardBreak,
+                softBreak,
+                inlineLocations,
+                codeSpans,
+                backslashEscape,
+                autoLinks,
+                html,
+                validDelimiters,
+                runCreators,
+                emphasisRuns
+            )
+        }
+        //process emphasis as we know where the runs are, this is why the inline metadata needs to be priority queue
+        processEmphasis(emphasisRuns, lexer, null, inlineLocations)
+        return createInlines(inlineLocations, toParse, delimiters)
+    }
 
-        return createInlines(inlineLocations, toParse)
+    private fun inspectCharacter(
+        lexer: InlineLexer,
+        hardBreak: Boolean,
+        softBreak: Boolean,
+        inlineLocations: PriorityQueue<InlineMetaData>,
+        codeSpans: Boolean,
+        backslashEscape: Boolean,
+        autoLinks: Boolean,
+        html: Boolean,
+        validDelimiters: MutableSet<Char>,
+        runCreators: MutableMap<Char, (Int, Char, Char, Int) -> Run>,
+        emphasisRuns: DelimiterLinkedList<Run>
+    ) {
+        val savedIndex = lexer.saveIndex()
+        //softBreak and hardBreak
+        when {
+            lexer.inspect('\n') -> {
+
+                // try to match a lineBreak
+                val matched = lineBreaks(lexer, savedIndex, hardBreak, softBreak)
+                addInlineMetadata(matched, inlineLocations)
+                // reset state to where we were
+                lexer.goTo(savedIndex)
+            }
+            lexer.inspect('`') -> {
+                val matched = codeSpans(lexer, savedIndex, codeSpans)
+                addInlineMetadata(matched, inlineLocations)
+            }
+            lexer.inspect('\\') -> {
+                val matched = backslashEscape(lexer, savedIndex, backslashEscape)
+                addInlineMetadata(matched, inlineLocations)
+            }
+            lexer.inspect('<') -> {
+                //this can be either HTML or autolink
+                val matchedAutoLink = autoLinks(lexer, savedIndex, autoLinks)
+                addInlineMetadata(matchedAutoLink, inlineLocations)
+
+                if (matchedAutoLink.type == InlineTypes.NONE) {
+                    val matchedHTML = html(lexer, "", savedIndex, html)
+                    addInlineMetadata(matchedHTML, inlineLocations)
+                }
+            }
+            lexer.inspect { validDelimiters.contains(it) } -> {
+                val startingIndex = lexer.saveIndex()
+                val char = lexer.getChar()
+                val precedingChar = lexer.getChar(startingIndex - 1)
+                var lengthOfRun = lexer.advanceWhile { it == char }
+                val followingCharacter = lexer.getChar(lexer.saveIndex())
+                // wouldn't be in here if this didnt exist, so this is a safe call
+                val run = runCreators[char]!!.invoke(lengthOfRun, precedingChar, followingCharacter, startingIndex)
+                if (run.runType != RunType.NONE) {
+                    emphasisRuns.addAtTail(run)
+                }
+                // stops double counting of the last character as these are not put into inlineMetadata yet
+                if(!lexer.isEndOfLine()) {
+                    lexer.goBackOne()
+                }
+            }
+        }
     }
 
     private fun addInlineMetadata(inlineMetaData: InlineMetaData, inlines: PriorityQueue<InlineMetaData>){
@@ -260,23 +331,113 @@ class InlineParser {
         }
         return InlineMetaData(savedIndex, savedIndex, InlineTypes.NONE)
     }
+
+    private fun processEmphasis(runs: DelimiterLinkedList<Run>, lexer: InlineLexer, stackBottom: Node<Run>?, inlineMetaData: PriorityQueue<InlineMetaData>){
+        var currentPosition = if(stackBottom == null) runs.head else stackBottom.next
+        while(currentPosition != null){
+            if(currentPosition.element.canClose()){
+                //look back for a potential opener
+                val closingRun = currentPosition.element
+                var lookBack = currentPosition.prev
+                while(lookBack != null && lookBack != stackBottom && !(lookBack.element.canOpen() && lookBack.element.delimiter == closingRun.delimiter)){
+                    lookBack = lookBack.prev
+                }
+                //if lookBack is either null or stackBottom we did not find an opener
+                // if it is neither of those we can safely say we found our opener
+                if(lookBack != null && lookBack != stackBottom){
+                    val openingRun = lookBack.element
+                    val openLength = openingRun.length
+                    val closeLength = closingRun.length
+                    /*
+                     the condition that a delimiter that can both open and close
+                     cannot form emphasis if the sum of the lengths of the delimiter runs containing the
+                     opening and closing delimiters is a multiple of 3 unless both lengths are multiples of 3.
+                     */
+                    if((closeLength + openLength) % 3 == 0){
+                        if(closeLength % 3 == 0 && openLength % 3 == 0){
+                            // we can make one
+                            openEmphasis(lookBack, currentPosition, inlineMetaData, runs)
+                        } else{
+                            // we cannot make one so this one is not the opener for this one
+                        }
+                    } else {
+                        // the multiple clause is gone so we can form one
+                       openEmphasis(lookBack, currentPosition, inlineMetaData, runs)
+                    }
+                }
+            }
+            currentPosition = currentPosition.next
+            while(currentPosition != null && !currentPosition.element.canClose()){
+                currentPosition = currentPosition.next
+            }
+        }
+    }
 }
 
+private fun openEmphasis(openingNode: Node<Run>, closingNode: Node<Run>, inlineMetaData: PriorityQueue<InlineMetaData>, runs: DelimiterLinkedList<Run>) {
+    val openLength = openingNode.element.length
+    val closeLength = closingNode.element.length
+    val openingRun = openingNode.element
+    val closingRun = closingNode.element
+    if(openLength >= 2 && closeLength >=  2){
+        // strong emphasis
+        shortenAndRemoveRun(2, openingNode, closingNode, runs)
+        inlineMetaData.add(InlineMetaData(openingRun.indexAfterRun, closingRun.startingIndex,InlineTypes.STRONG_EMPHASIS, closingRun.delimiter))
+    } else {
+        // weak emphasis
+        shortenAndRemoveRun(1, openingNode, closingNode, runs)
+        inlineMetaData.add(InlineMetaData(openingRun.indexAfterRun, closingRun.startingIndex,InlineTypes.WEAK_EMPHASIS, closingRun.delimiter))
+    }
+}
 
-fun createInlines(inlineMetaData: PriorityQueue<InlineMetaData>, line: String): List<Inline>{
+private fun shortenAndRemoveRun(amountToRemove: Int, openingNode: Node<Run>, closingNode: Node<Run>, runs: DelimiterLinkedList<Run>){
+    val openingRun = openingNode.element
+    val closingRun = closingNode.element
+    openingRun.length -= amountToRemove
+    if(openingRun.length == 0){
+        //remove it, this will be used later, the node still will have its old prev and next so its okay
+        runs.remove(closingNode)
+    }
+    closingRun.length -= amountToRemove
+    if(closingRun.length == 0){
+        //remove it
+        runs.remove(openingNode)
+    }
+}
+
+fun createInlines(inlineMetaData: PriorityQueue<InlineMetaData>, line: String, delimiters: List<Emphasis<*>> = emptyList()): List<Inline>{
     // so we can do some inspection on it without losing when we pop
-    val list = inlineMetaData.toList()
+    val list = inlineMetaData.toList().sorted()
     val inlines = mutableListOf<Inline>()
+    // I believe the only container Inline is emphasis (that is parsed at first pass, link titles and such will be parsed again)
     // for simplicity until ones with internal inlines can be created none of these will have internals
 
     // an Inline String will need to be created if the current ending is less than the next start
     var currentEnd = 0
-    list.forEach {
+    var i : Int = 0
+    while(i < list.size){
+        val it = list[i]
         if(currentEnd < it.start){
             inlines.add(InlineString(line.substring(currentEnd, it.start)))
         }
         // make the next inline
-        inlines.add(createInline(it, line))
+        if(it.type == InlineTypes.STRONG_EMPHASIS || it.type == InlineTypes.WEAK_EMPHASIS){
+            val embedded: MutableList<InlineMetaData> = mutableListOf()
+            i++
+            while(i < list.size && list[i].end < it.end){
+                embedded.add(list[i])
+                // normalize for recursive call
+                list[i].start -=it.start+1
+                list[i].end -= it.start+1
+                i++
+            }
+            val embeddedInlines = createInlines(PriorityQueue(embedded), line.substring(it.start + 1, it.end), delimiters)
+
+            it.extra = Pair(it.extra, embeddedInlines)
+            i--
+        }
+        inlines.add(createInline(it, line, delimiters))
+        i++
         currentEnd = it.end + 1
     }
     if(currentEnd != line.length){
@@ -286,7 +447,7 @@ fun createInlines(inlineMetaData: PriorityQueue<InlineMetaData>, line: String): 
     return inlines
 }
 
-fun createInline(inlineMetaData: InlineMetaData, line: String): Inline{
+fun createInline(inlineMetaData: InlineMetaData, line: String, delimiters: List<Emphasis<*>>): Inline{
     return when(inlineMetaData.type){
         InlineTypes.HARD_BREAK -> HardBreak()
         InlineTypes.SOFT_BREAK -> SoftBreak()
@@ -296,6 +457,16 @@ fun createInline(inlineMetaData: InlineMetaData, line: String): Inline{
         InlineTypes.AUTO_LINK -> AutoLink(line.substring(inlineMetaData.start + 1, inlineMetaData.end))
         InlineTypes.RAW_HTML -> RawHTML(line.substring(inlineMetaData.start,inlineMetaData.end + 1))
         InlineTypes.ENTITY -> InlineEntity(inlineMetaData.extra as Entity)
+        InlineTypes.STRONG_EMPHASIS -> createEmphasis(inlineMetaData, delimiters)
+        InlineTypes.WEAK_EMPHASIS -> createEmphasis(inlineMetaData, delimiters)
         else -> throw ParsingException("Unknown inline type ${inlineMetaData.type}")
     }
+}
+
+fun createEmphasis(inlineMetaData: InlineMetaData, delimiters: List<Emphasis<*>>): Inline{
+    val extraData: Pair<Char, List<Inline>> = inlineMetaData.extra as Pair<Char, List<Inline>>
+    // since emphasis have their inlines already made line is unnecessary
+    val type: Emphasis<*> = delimiters.find { it.delimiter == extraData.first }!!
+    return type.createEmphasis(extraData.second, inlineMetaData.type == InlineTypes.STRONG_EMPHASIS) as Inline
+
 }

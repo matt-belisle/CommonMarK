@@ -10,19 +10,24 @@ import java.time.Instant
 class timeTest(){
     @Test
     fun specTest(){
-        val b = StringBuilder("hi    ")
-        val x = b.dropLastWhile { it.isWhitespace() }
-        //TODO 36 all require emphasis
         val testCasesFile = File("src/test/resources/test.md")
         val parser = CommonMarkParser()
-        val lines = testCasesFile.readLines().map { "$it\n" }
-        for(i in 0..5) {
+        val lines = testCasesFile.readLines().map { "$it" }
+        val times = mutableListOf<Duration>()
+        // warm up the JVM...
+        val parsed = parser.parse(lines)
+        val rendered = parsed.render()
+        for(i in 0..20) {
             val begin = Instant.now()
             val parsed = parser.parse(lines)
             val rendered = parsed.render()
             val end = Instant.now()
+            times.add(Duration.between(begin,end))
             println("TotalTime: ${Duration.between(begin, end)}")
         }
+        val seconds = times.map { it.toMillis() }
+
+        println("Average Time: ${seconds.average()} ")
 //        specTest(35)
     }
 }

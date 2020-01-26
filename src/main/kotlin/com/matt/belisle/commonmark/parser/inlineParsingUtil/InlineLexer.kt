@@ -25,6 +25,8 @@ class InlineLexer(val line: String){
 
     fun subString(start: Int, end: Int) = line.substring(start, end)
     fun subString(start: Int) = line.substring(start)
+    // space for now as this should ONLY be used for Empahsis which is fine with this
+    fun getChar(ind: Int = this.index) = if(ind >= line.length || ind < 0) {' '} else { line[ind] }
 
 
     fun inspect(f: (Char) -> Boolean) = f(line[index])

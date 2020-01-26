@@ -3,6 +3,7 @@ package com.matt.belisle.commonmark.ast.leafBlocks
 import com.matt.belisle.commonmark.ast.*
 import com.matt.belisle.commonmark.ast.containerBlocks.Container
 import com.matt.belisle.commonmark.ast.inlineElements.InlineString
+import java.lang.StringBuilder
 
 class ATXHeading private constructor(val headingLevel: Int, indentation: Int, parent: Container) :
     Leaf(parent = parent, indent = indentation) {
@@ -32,7 +33,11 @@ class ATXHeading private constructor(val headingLevel: Int, indentation: Int, pa
         val text = if(inline.isEmpty()) {
             ""
         } else {
-            inline.first().render()
+            val builder = StringBuilder()
+            with(builder) {
+                inline.forEach{append(it.render())}
+            }
+            builder.toString()
         }
         return "<h$headingLevel>${text}</h$headingLevel>\n"
     }
