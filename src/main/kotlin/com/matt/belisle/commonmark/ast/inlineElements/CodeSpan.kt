@@ -26,8 +26,8 @@ class CodeSpan(str: String) : Inline(){
         }
         this.code = normalized
     }
-    override fun render(entity: Boolean): String {
-        val code = if(entity){
+    override fun render(entities: Boolean): String {
+        val code = if(entities){
             val entities = EntityReplacement.inspect(code, true)
             val builder = StringBuilder()
             with(builder){

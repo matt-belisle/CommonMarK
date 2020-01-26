@@ -7,9 +7,9 @@ import kotlin.text.StringBuilder
 class InlineString(line: String) : Inline() {
     val strBuilder = StringBuilder(line)
     override fun render(entities: Boolean): String {
-        return render(trimStart = false, trimEnd = false, entity = entities)
+        return render(trimEnd = false, entity = entities)
     }
-    fun render(trimStart: Boolean = false, trimEnd: Boolean = false, entity: Boolean): String{
+    fun render(trimEnd: Boolean = false, entity: Boolean): String{
         val line = strBuilder.toString()
         if(!entity || line.isEmpty()){
             if(trimEnd){

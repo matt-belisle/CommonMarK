@@ -8,7 +8,9 @@ class EmphasisUnderscore(inlines: List<Inline>, strong: Boolean): InlineEmphasis
         override fun makeRun(length: Int, before: Char, after: Char, startingIndex: Int): Run {
             val leftFlanking = leftFlanking(after, before)
             val rightFlanking = rightFlanking(after, before)
-            return Run(getRunType(leftFlanking, rightFlanking), delimiter, length, startingIndex)
+            val opener = leftFlanking && (!rightFlanking || (rightFlanking && isPunctuation(before)))
+            val closer = rightFlanking && (!leftFlanking || (leftFlanking && isPunctuation(after)))
+            return Run(getRunType(opener, closer), delimiter, length, startingIndex)
         }
 
         override fun createEmphasis(inlines: List<Inline>, strong: Boolean): EmphasisUnderscore {

@@ -87,6 +87,7 @@ abstract class Emphasis<T> {
             '|' -> true
             '}' -> true
             '~' -> true
+            ',' -> true
             else -> false
 
         }

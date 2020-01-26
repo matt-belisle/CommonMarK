@@ -8,10 +8,10 @@ val ESCAPABLE = listOf('!' , '"' , '#' , '$' , '%' , '&' , '\'' , '(' , ')' , '*
 
 // Represents a backslash escaped character
 class BackslashEscape(private val char: Char) : Inline(){
-    override fun render(entity:Boolean): String {
-        if(entity){
-            val entities = EntityReplacement.inspect(char.toString(), true)[0]
-            return entities.render()
+    override fun render(entities:Boolean): String {
+        if(entities){
+            val entity = EntityReplacement.inspect(char.toString(), true)[0]
+            return entity.render()
         }
         return char.toString()
     }

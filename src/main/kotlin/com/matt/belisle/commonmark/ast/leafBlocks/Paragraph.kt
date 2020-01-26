@@ -77,7 +77,7 @@ class Paragraph private constructor(parent: Container, indent: Int) : Leaf(paren
                         append(inlineElement.render(trimEnd = (next is SoftBreak || next is HardBreak), entity = true))
                 }
                 else if(index == inline.size - 1 && inlineElement is InlineString) {
-                    append(inlineElement.render(trimStart = true, trimEnd = false, entity = true))
+                    append(inlineElement.render(trimEnd = false, entity = true))
                 }else {
                     append(inlineElement.render())
                 }

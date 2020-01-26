@@ -103,7 +103,8 @@ class InlineParser {
                 html,
                 validDelimiters,
                 runCreators,
-                emphasisRuns
+                emphasisRuns,
+                emphasis
             )
             // next character
             lexer.advanceCharacter()
@@ -122,11 +123,12 @@ class InlineParser {
                 html,
                 validDelimiters,
                 runCreators,
-                emphasisRuns
+                emphasisRuns,
+                emphasis
             )
         }
         //process emphasis as we know where the runs are, this is why the inline metadata needs to be priority queue
-        processEmphasis(emphasisRuns, lexer, null, inlineLocations)
+        processEmphasis(emphasisRuns, null, inlineLocations)
         return createInlines(inlineLocations, toParse, delimiters)
     }
 
@@ -141,7 +143,8 @@ class InlineParser {
         html: Boolean,
         validDelimiters: MutableSet<Char>,
         runCreators: MutableMap<Char, (Int, Char, Char, Int) -> Run>,
-        emphasisRuns: DelimiterLinkedList<Run>
+        emphasisRuns: DelimiterLinkedList<Run>,
+        emphasis: Boolean
     ) {
         val savedIndex = lexer.saveIndex()
         //softBreak and hardBreak
@@ -168,24 +171,32 @@ class InlineParser {
                 addInlineMetadata(matchedAutoLink, inlineLocations)
 
                 if (matchedAutoLink.type == InlineTypes.NONE) {
-                    val matchedHTML = html(lexer, "", savedIndex, html)
+                    val matchedHTML = html(lexer, savedIndex, html)
                     addInlineMetadata(matchedHTML, inlineLocations)
                 }
             }
             lexer.inspect { validDelimiters.contains(it) } -> {
-                val startingIndex = lexer.saveIndex()
-                val char = lexer.getChar()
-                val precedingChar = lexer.getChar(startingIndex - 1)
-                var lengthOfRun = lexer.advanceWhile { it == char }
-                val followingCharacter = lexer.getChar(lexer.saveIndex())
-                // wouldn't be in here if this didnt exist, so this is a safe call
-                val run = runCreators[char]!!.invoke(lengthOfRun, precedingChar, followingCharacter, startingIndex)
-                if (run.runType != RunType.NONE) {
-                    emphasisRuns.addAtTail(run)
-                }
-                // stops double counting of the last character as these are not put into inlineMetadata yet
-                if(!lexer.isEndOfLine()) {
-                    lexer.goBackOne()
+                if(emphasis) {
+                    val startingIndex = lexer.saveIndex()
+                    val char = lexer.getChar()
+                    val precedingChar = lexer.getChar(startingIndex - 1)
+                    var lengthOfRun = lexer.advanceWhile { it == char }
+                    // could be a trailing * in a run
+                    if (lexer.inspect { it == char }) {
+                        lengthOfRun++
+                    }
+                    val followingCharacter = lexer.getChar(lexer.saveIndex())
+                    // wouldn't be in here if this didnt exist, so this is a safe call
+                    val run = runCreators[char]!!.invoke(lengthOfRun, precedingChar, followingCharacter, startingIndex)
+                    if (run.runType != RunType.NONE) {
+                        emphasisRuns.addAtTail(run)
+                    }
+                    // stops double counting of the last character as these are not put into inlineMetadata yet
+                    // the last character may be a single character in a different run if the delimiter is different though
+                    val finalChar = lexer.getChar()
+                    if (!lexer.isEndOfLine() || (finalChar != char && finalChar in validDelimiters)) {
+                        lexer.goBackOne()
+                    }
                 }
             }
         }
@@ -317,7 +328,11 @@ class InlineParser {
         return InlineMetaData(savedIndex, savedIndex, InlineTypes.NONE)
     }
 
-    private fun html(lexer: InlineLexer, line: String, savedIndex: Int, html: Boolean): InlineMetaData{
+    private fun html(
+        lexer: InlineLexer,
+        savedIndex: Int,
+        html: Boolean
+    ): InlineMetaData{
         if(html){
             val htmlMatcher = HTMLMatcher(lexer.subString(savedIndex))
             val (matched, newIndex) = htmlMatcher.startsWithMatch()
@@ -326,47 +341,61 @@ class InlineParser {
                 return InlineMetaData(savedIndex, savedIndex + newIndex, InlineTypes.RAW_HTML)
             }
             lexer.goTo(savedIndex)
-            val falseReturn = InlineMetaData(savedIndex, savedIndex, InlineTypes.NONE)
-
         }
         return InlineMetaData(savedIndex, savedIndex, InlineTypes.NONE)
     }
 
-    private fun processEmphasis(runs: DelimiterLinkedList<Run>, lexer: InlineLexer, stackBottom: Node<Run>?, inlineMetaData: PriorityQueue<InlineMetaData>){
+    private fun processEmphasis(
+        runs: DelimiterLinkedList<Run>,
+        stackBottom: Node<Run>?,
+        inlineMetaData: PriorityQueue<InlineMetaData>
+    ){
         var currentPosition = if(stackBottom == null) runs.head else stackBottom.next
         while(currentPosition != null){
-            if(currentPosition.element.canClose()){
+
+            if(currentPosition.element.canClose()) {
                 //look back for a potential opener
                 val closingRun = currentPosition.element
                 var lookBack = currentPosition.prev
-                while(lookBack != null && lookBack != stackBottom && !(lookBack.element.canOpen() && lookBack.element.delimiter == closingRun.delimiter)){
-                    lookBack = lookBack.prev
-                }
-                //if lookBack is either null or stackBottom we did not find an opener
-                // if it is neither of those we can safely say we found our opener
-                if(lookBack != null && lookBack != stackBottom){
-                    val openingRun = lookBack.element
-                    val openLength = openingRun.length
-                    val closeLength = closingRun.length
-                    /*
+                // fully process the current run, it can be part of multiple emphasis so need to go through until
+                // it is either empty or there is nothing to look back to
+                while (currentPosition.element.length != 0 && lookBack != null && lookBack != stackBottom) {
+                    var matched = false
+                    while (lookBack != null && lookBack != stackBottom && !(lookBack.element.canOpen() && lookBack.element.delimiter == closingRun.delimiter)) {
+                        lookBack = lookBack.prev
+                    }
+                    //if lookBack is either null or stackBottom we did not find an opener
+                    // if it is neither of those we can safely say we found our opener
+                    if (lookBack != null && lookBack != stackBottom) {
+                        val openingRun = lookBack.element
+                        val openLength = openingRun.length
+                        val closeLength = closingRun.length
+                        /*
                      the condition that a delimiter that can both open and close
                      cannot form emphasis if the sum of the lengths of the delimiter runs containing the
                      opening and closing delimiters is a multiple of 3 unless both lengths are multiples of 3.
                      */
-                    if((closeLength + openLength) % 3 == 0){
-                        if(closeLength % 3 == 0 && openLength % 3 == 0){
-                            // we can make one
+                        if ((closingRun.runType == RunType.BOTH || openingRun.runType == RunType.BOTH) && (closeLength + openLength) % 3 == 0) {
+                            if (closeLength % 3 == 0 && openLength % 3 == 0) {
+                                // we can make one
+                                openEmphasis(lookBack, currentPosition, inlineMetaData, runs)
+                                matched = true
+                            } else {
+                                // we cannot make one so this one is not the opener for this one
+                            }
+                        } else {
+                            // the multiple clause is gone so we can form one
                             openEmphasis(lookBack, currentPosition, inlineMetaData, runs)
-                        } else{
-                            // we cannot make one so this one is not the opener for this one
+                            matched = true
                         }
-                    } else {
-                        // the multiple clause is gone so we can form one
-                       openEmphasis(lookBack, currentPosition, inlineMetaData, runs)
+                        // this may match multiple times with the current position
+                        if(lookBack.element.length == 0 || !matched) {
+                            lookBack = lookBack.prev
+                        }
                     }
                 }
             }
-            currentPosition = currentPosition.next
+                currentPosition = currentPosition.next
             while(currentPosition != null && !currentPosition.element.canClose()){
                 currentPosition = currentPosition.next
             }
@@ -379,14 +408,15 @@ private fun openEmphasis(openingNode: Node<Run>, closingNode: Node<Run>, inlineM
     val closeLength = closingNode.element.length
     val openingRun = openingNode.element
     val closingRun = closingNode.element
+    runs.removeBetween(openingNode, closingNode)
     if(openLength >= 2 && closeLength >=  2){
         // strong emphasis
         shortenAndRemoveRun(2, openingNode, closingNode, runs)
-        inlineMetaData.add(InlineMetaData(openingRun.indexAfterRun, closingRun.startingIndex,InlineTypes.STRONG_EMPHASIS, closingRun.delimiter))
+        inlineMetaData.add(InlineMetaData(openingRun.startingIndex + openingRun.length, closingRun.endingIndex - closingRun.length,InlineTypes.STRONG_EMPHASIS, closingRun.delimiter))
     } else {
         // weak emphasis
         shortenAndRemoveRun(1, openingNode, closingNode, runs)
-        inlineMetaData.add(InlineMetaData(openingRun.indexAfterRun, closingRun.startingIndex,InlineTypes.WEAK_EMPHASIS, closingRun.delimiter))
+        inlineMetaData.add(InlineMetaData(openingRun.startingIndex + openingRun.length, closingRun.endingIndex - closingRun.length,InlineTypes.WEAK_EMPHASIS, closingRun.delimiter))
     }
 }
 
@@ -396,12 +426,12 @@ private fun shortenAndRemoveRun(amountToRemove: Int, openingNode: Node<Run>, clo
     openingRun.length -= amountToRemove
     if(openingRun.length == 0){
         //remove it, this will be used later, the node still will have its old prev and next so its okay
-        runs.remove(closingNode)
+        runs.remove(openingNode)
     }
     closingRun.length -= amountToRemove
     if(closingRun.length == 0){
         //remove it
-        runs.remove(openingNode)
+        runs.remove(closingNode)
     }
 }
 
@@ -424,14 +454,17 @@ fun createInlines(inlineMetaData: PriorityQueue<InlineMetaData>, line: String, d
         if(it.type == InlineTypes.STRONG_EMPHASIS || it.type == InlineTypes.WEAK_EMPHASIS){
             val embedded: MutableList<InlineMetaData> = mutableListOf()
             i++
+            val strong = if(it.type == InlineTypes.STRONG_EMPHASIS) 2 else 1
             while(i < list.size && list[i].end < it.end){
                 embedded.add(list[i])
                 // normalize for recursive call
-                list[i].start -=it.start+1
-                list[i].end -= it.start+1
+                list[i].start -=it.start+strong
+                list[i].end -= it.start+strong
                 i++
             }
-            val embeddedInlines = createInlines(PriorityQueue(embedded), line.substring(it.start + 1, it.end), delimiters)
+
+            val emphasisPairRemoved = line.substring((it.start + strong), it.end - strong + 1)
+            val embeddedInlines = createInlines(PriorityQueue(embedded), emphasisPairRemoved, delimiters)
 
             it.extra = Pair(it.extra, embeddedInlines)
             i--

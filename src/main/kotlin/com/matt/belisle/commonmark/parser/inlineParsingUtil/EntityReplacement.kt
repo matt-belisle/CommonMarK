@@ -1,7 +1,6 @@
 package com.matt.belisle.commonmark.parser.inlineParsingUtil
 
 import com.matt.belisle.commonmark.ast.inlineElements.Inline
-import com.matt.belisle.commonmark.ast.inlineElements.InlineString
 import com.matt.belisle.commonmark.parser.createInlines
 import java.util.*
 
@@ -80,12 +79,11 @@ object EntityReplacement {
             return Pair(false, Entity(emptyList(), ""))
         }
         val numeric = lexer.inspect('#')
-        var hex = false
         lexer.advanceCharacter()
         if(lexer.isEndOfLine()){
             return Pair(false, Entity(emptyList(), ""))
         }
-        hex = lexer.inspect {it == 'X' || it == 'x'}
+        val hex: Boolean = lexer.inspect {it == 'X' || it == 'x'}
         lexer.goBackOne()
         val characters = lexer.advanceWhile { it != ';' }
         // was not stopped by EOL
@@ -101,9 +99,9 @@ object EntityReplacement {
                     lexer.goTo(savedIndex + 1)
                     if (lexer.advanceWhile { it.isDigit() } == characters) {
                         //parse out the numeric
-                        val numeric = lexer.subString(savedIndex + 2, lexer.saveIndex() + 1)
+                        val isNumeric = lexer.subString(savedIndex + 2, lexer.saveIndex() + 1)
                         // get the unicodeCharacter
-                        val codePoint = numeric.toInt()
+                        val codePoint = isNumeric.toInt()
                         val char = codePoint.toChar()
                         return Pair(true, Entity(listOf(codePoint), char.toString()))
                     }
@@ -112,9 +110,9 @@ object EntityReplacement {
                     lexer.goTo(savedIndex + 2)
                 if (lexer.advanceWhile { it.isDigit() } == characters - 1) {
                     //parse out the numeric
-                    val numeric = lexer.subString(savedIndex + 3, lexer.saveIndex() + 1)
+                    val isNumeric = lexer.subString(savedIndex + 3, lexer.saveIndex() + 1)
                     // get the unicodeCharacter
-                    val codePoint = numeric.toInt(16)
+                    val codePoint = isNumeric.toInt(16)
                     val char = codePoint.toChar()
                     return Pair(true, Entity(listOf(codePoint), char.toString()))
                 }
@@ -122,5 +120,5 @@ object EntityReplacement {
         }
         return Pair(false, Entity(emptyList(), ""))
     }
-    private inline fun htmlReserved(it: Char) = it != '\'' && it != '"' && it != '&' && it != '<' && it != '>'
+    private fun htmlReserved(it: Char) = it != '\'' && it != '"' && it != '&' && it != '<' && it != '>'
 }

@@ -40,13 +40,13 @@ class BlankLinePropagationVisitor : PostOrderTraversalVisitor() {
         return listOf(codeFence)
     }
 
-    override fun visit(listItem: ListItem): List<Block> {
-        return if(listItem.children.size > 1 && listItem.children.last() is BlankLine){
-            val blankLine = listItem.children.last()
-            listItem.children.removeAt(listItem.children.size - 1)
-            listOf(listItem, blankLine)
+    override fun visit(listItems: ListItem): List<Block> {
+        return if(listItems.children.size > 1 && listItems.children.last() is BlankLine){
+            val blankLine = listItems.children.last()
+            listItems.children.removeAt(listItems.children.size - 1)
+            listOf(listItems, blankLine)
         } else {
-            listOf(listItem)
+            listOf(listItems)
         }
     }
 
