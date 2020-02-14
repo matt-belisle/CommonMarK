@@ -116,6 +116,9 @@ class HTMLBlock private constructor(parent: Container, indent: Int, private val 
             return line.countLeadingSpaces() < indentCheck(indentation) && matchWithType(line.trimStart(), currentOpenBlock).first
         }
         private fun matchWithType(line: String, currentOpenBlock: Block): Pair<Boolean, HTMLBlockType> {
+            if(!line.startsWith('<')){
+                return Pair(false, HTMLBlockType.TYPE1)
+            }
             return when {
                 type1Match(line) -> {
                     Pair(true, HTMLBlockType.TYPE1)

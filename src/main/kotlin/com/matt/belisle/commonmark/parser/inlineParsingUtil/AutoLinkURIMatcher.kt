@@ -34,7 +34,7 @@ class AutoLinkURIMatcher(linkToTest: String){
         lexer.advanceCharacter()
 
         lexer.advanceWhile { it !='<' && it!='>' && !it.isWhitespace() }
-        return lexer.isEndOfLine()
+        return lexer.isEndOfData()
     }
 
     private fun scheme(): Boolean {

@@ -1,14 +1,13 @@
 package com.matt.belisle.commonmark.ast.leafBlocks
-
 import com.matt.belisle.commonmark.ast.BasicBlockTest
 import org.junit.Test
 
-class CodeFenceTest: BasicBlockTest(){
+class LinkReferenceDefinitionTest: BasicBlockTest(){
 
     @Test
     fun specTest() {
-        specTest(100)
-        specTest("Fenced code blocks")
+        specTest(173)
+        specTest("Link reference definitions")
 
     }
 }

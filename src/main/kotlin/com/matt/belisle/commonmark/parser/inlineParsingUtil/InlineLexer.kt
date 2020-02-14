@@ -7,12 +7,12 @@ fun isAsciiChar(char: Char): Boolean = char in 'a'..'z' || char in 'A'..'Z'
 class InlineLexer(val line: String){
     private var index = 0
 
-    fun isEndOfLine(): Boolean {
+    fun isEndOfData(): Boolean {
         return index >= line.length - 1
     }
 
     fun inspect(char: Char): Boolean {
-        return !isEndOfLine() && line[index] == char
+        return !isEndOfData() && line[index] == char
     }
     fun inspect(str:String): Boolean {
         return if(index + str.length > line.length){
@@ -42,7 +42,7 @@ class InlineLexer(val line: String){
     // takes a predicate and continues until the predicate is false or end of line
     fun advanceWhile(f: (Char) -> Boolean): Int {
         var advanced = 0
-        while(!isEndOfLine() && f(line[index])){
+        while(!isEndOfData() && f(line[index])){
             index++
             advanced++
         }
@@ -61,7 +61,7 @@ class InlineLexer(val line: String){
     fun returnMatchedWhile(f: (Char) -> Boolean): String {
         val stringBuilder = StringBuilder()
         with(stringBuilder) {
-            while (!isEndOfLine() && f(line[index])) {
+            while (!isEndOfData() && f(line[index])) {
                 append(line[index])
                 index++
             }
@@ -69,7 +69,7 @@ class InlineLexer(val line: String){
         return stringBuilder.toString()
     }
 
-    fun restOfLineIsEmpty(): Boolean = isEndOfLine() || line.trimEnd().length == index
+    fun restOfLineIsEmpty(): Boolean = isEndOfData() || line.trimEnd().length == index
     //reusable, note not thread safe
     fun reset(){
         index = 0
@@ -88,6 +88,23 @@ class InlineLexer(val line: String){
         index -= x
         if(index < 0){
             index = 0
+        }
+    }
+
+    // will skip spaces including up to a specified number of newlines
+    fun skipSpacesMaximumNewLines(maximumNewlines:Int) {
+        // optional whitespace, this uses unicode whitespace, new line not going to advance through
+        skipSpaces()
+        //up to one line ending
+        var i = 0
+        while(i < maximumNewlines) {
+            if (inspect('\n')) {
+                advanceCharacter()
+            } else {
+
+                break
+            }
+            skipSpaces()
         }
     }
 }

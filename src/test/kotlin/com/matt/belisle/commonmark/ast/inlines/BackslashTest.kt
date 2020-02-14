@@ -6,8 +6,8 @@ import org.junit.Test
 class BackslashTest : BasicBlockTest() {
     @Test
     fun specTest(){
-        //  306 is autolink
-        //  308 309 Liks of various types
+        //  306 is autolink with URI encoding
+        //  308 309 Links of various types
         specTest("Backslash escapes")
     }
 }

@@ -8,6 +8,7 @@ import com.matt.belisle.commonmark.ast.containerBlocks.BlockQuote
 import com.matt.belisle.commonmark.ast.containerBlocks.Container
 import com.matt.belisle.commonmark.ast.containerBlocks.ListItem
 import com.matt.belisle.commonmark.ast.leafBlocks.*
+import com.matt.belisle.commonmark.visitors.linkReferenceDefinitionVisitor.LinkReferenceDefinitionVisitor
 import com.matt.belisle.commonmark.visitors.listVisitors.BlankLinePropagationVisitor
 import com.matt.belisle.commonmark.visitors.listVisitors.CreateListBlockVisitor
 import java.time.Duration
@@ -35,7 +36,7 @@ class CommonMarkParser(
             BlankLine.Companion
         ),
         listOf(BlockQuote.Companion, ListItem.Companion),
-        listOf(BlankLinePropagationVisitor(), CreateListBlockVisitor())
+        listOf(LinkReferenceDefinitionVisitor(),BlankLinePropagationVisitor(), CreateListBlockVisitor())
     )
 
     fun parse(data: List<String>): Document {

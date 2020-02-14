@@ -27,7 +27,7 @@ object EntityReplacement {
                             )
                         )
                     }
-                } while (!lexer.isEndOfLine())
+                } while (!lexer.isEndOfData())
                 mutMetaData
             }
 
@@ -43,7 +43,7 @@ object EntityReplacement {
             lexer.advanceWhile { htmlReserved(it) }
             htmlEntities(lexer, metadata)
             lexer.advanceCharacter()
-        } while (!lexer.isEndOfLine())
+        } while (!lexer.isEndOfData())
         if(metadata.size > 0 && metadata[metadata.size - 1].end != lexer.line.length - 1){
             // edge case on two entities in a row to end the string
             lexer.goTo(lexer.line.length - 1)
@@ -75,12 +75,12 @@ object EntityReplacement {
     private fun isEntity(lexer: InlineLexer): Pair<Boolean, Entity>{
         val savedIndex = lexer.saveIndex()
         lexer.advanceCharacter()
-        if(lexer.isEndOfLine()){
+        if(lexer.isEndOfData()){
             return Pair(false, Entity(emptyList(), ""))
         }
         val numeric = lexer.inspect('#')
         lexer.advanceCharacter()
-        if(lexer.isEndOfLine()){
+        if(lexer.isEndOfData()){
             return Pair(false, Entity(emptyList(), ""))
         }
         val hex: Boolean = lexer.inspect {it == 'X' || it == 'x'}

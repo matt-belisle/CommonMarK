@@ -91,7 +91,7 @@ class InlineParser {
         val toParse = elaborateInlines(inlines)
         val lexer = InlineLexer(toParse)
 
-        while(!lexer.isEndOfLine()){
+        while(!lexer.isEndOfData()){
             inspectCharacter(
                 lexer,
                 hardBreak,
@@ -148,8 +148,8 @@ class InlineParser {
     ) {
         val savedIndex = lexer.saveIndex()
         //softBreak and hardBreak
-        when {
-            lexer.inspect('\n') -> {
+        when (lexer.getChar()){
+            '\n' -> {
 
                 // try to match a lineBreak
                 val matched = lineBreaks(lexer, savedIndex, hardBreak, softBreak)
@@ -157,15 +157,15 @@ class InlineParser {
                 // reset state to where we were
                 lexer.goTo(savedIndex)
             }
-            lexer.inspect('`') -> {
+            '`' -> {
                 val matched = codeSpans(lexer, savedIndex, codeSpans)
                 addInlineMetadata(matched, inlineLocations)
             }
-            lexer.inspect('\\') -> {
+           '\\'-> {
                 val matched = backslashEscape(lexer, savedIndex, backslashEscape)
                 addInlineMetadata(matched, inlineLocations)
             }
-            lexer.inspect('<') -> {
+            '<' -> {
                 //this can be either HTML or autolink
                 val matchedAutoLink = autoLinks(lexer, savedIndex, autoLinks)
                 addInlineMetadata(matchedAutoLink, inlineLocations)
@@ -175,7 +175,7 @@ class InlineParser {
                     addInlineMetadata(matchedHTML, inlineLocations)
                 }
             }
-            lexer.inspect { validDelimiters.contains(it) } -> {
+            in validDelimiters -> {
                 if(emphasis) {
                     val startingIndex = lexer.saveIndex()
                     val char = lexer.getChar()
@@ -194,7 +194,7 @@ class InlineParser {
                     // stops double counting of the last character as these are not put into inlineMetadata yet
                     // the last character may be a single character in a different run if the delimiter is different though
                     val finalChar = lexer.getChar()
-                    if (!lexer.isEndOfLine() || (finalChar != char && finalChar in validDelimiters)) {
+                    if (!lexer.isEndOfData() || (finalChar != char && finalChar in validDelimiters)) {
                         lexer.goBackOne()
                     }
                 }
@@ -246,11 +246,11 @@ class InlineParser {
             This allows you to include code that begins or ends with backtick characters, which must be separated by whitespace from the opening or closing backtick strings.
         */
         if(codeSpans){
-            if(lexer.inspect('`') && !lexer.isEndOfLine()) {
+            if(lexer.inspect('`') && !lexer.isEndOfData()) {
                 // our opening string of backticks
                 val run = lexer.advanceWhile { it == '`' }
                 // opening run was the end of the line
-                if(lexer.isEndOfLine()){
+                if(lexer.isEndOfData()){
                     //stops index out of bounds as analyzer always advances one
                     lexer.goBackOne()
                     return InlineMetaData(savedIndex, savedIndex, InlineTypes.NONE)
@@ -260,9 +260,9 @@ class InlineParser {
                 do {
                     lexer.advanceWhile { it != '`' }
                     closingRun = lexer.advanceWhile { it == '`' }
-                }while(closingRun != run && !lexer.isEndOfLine())
+                }while(closingRun != run && !lexer.isEndOfData())
                 val addToEnd: Int
-                addToEnd = if(lexer.isEndOfLine() && lexer.inspect { it == '`' }){
+                addToEnd = if(lexer.isEndOfData() && lexer.inspect { it == '`' }){
                     closingRun++
                     1
                 } else {
@@ -285,7 +285,7 @@ class InlineParser {
 
     private fun backslashEscape(lexer: InlineLexer, savedIndex: Int, backslashEscape: Boolean): InlineMetaData {
         if(backslashEscape){
-            if(!lexer.isEndOfLine()){
+            if(!lexer.isEndOfData()){
                 lexer.advanceCharacter(1)
                 if(lexer.inspect { it in ESCAPABLE }){
                     return InlineMetaData(savedIndex, savedIndex + 1, InlineTypes.BACKSLASH)
@@ -437,7 +437,6 @@ private fun shortenAndRemoveRun(amountToRemove: Int, openingNode: Node<Run>, clo
 
 fun createInlines(inlineMetaData: PriorityQueue<InlineMetaData>, line: String, delimiters: List<Emphasis<*>> = emptyList()): List<Inline>{
     // so we can do some inspection on it without losing when we pop
-    val list = inlineMetaData.toList().sorted()
     val inlines = mutableListOf<Inline>()
     // I believe the only container Inline is emphasis (that is parsed at first pass, link titles and such will be parsed again)
     // for simplicity until ones with internal inlines can be created none of these will have internals
@@ -445,8 +444,8 @@ fun createInlines(inlineMetaData: PriorityQueue<InlineMetaData>, line: String, d
     // an Inline String will need to be created if the current ending is less than the next start
     var currentEnd = 0
     var i : Int = 0
-    while(i < list.size){
-        val it = list[i]
+    while(inlineMetaData.isNotEmpty()){
+        val it = inlineMetaData.poll()
         if(currentEnd < it.start){
             inlines.add(InlineString(line.substring(currentEnd, it.start)))
         }
@@ -455,11 +454,12 @@ fun createInlines(inlineMetaData: PriorityQueue<InlineMetaData>, line: String, d
             val embedded: MutableList<InlineMetaData> = mutableListOf()
             i++
             val strong = if(it.type == InlineTypes.STRONG_EMPHASIS) 2 else 1
-            while(i < list.size && list[i].end < it.end){
-                embedded.add(list[i])
+            while(inlineMetaData.isNotEmpty() && inlineMetaData.peek().end < it.end){
+                val metaData = inlineMetaData.poll()
+                embedded.add(metaData)
                 // normalize for recursive call
-                list[i].start -=it.start+strong
-                list[i].end -= it.start+strong
+                metaData.start -=it.start+strong
+                metaData.end -= it.start+strong
                 i++
             }
 

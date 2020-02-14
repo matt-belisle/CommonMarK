@@ -6,6 +6,7 @@ import com.matt.belisle.commonmark.ast.containerBlocks.Container
 import com.matt.belisle.commonmark.ast.containerBlocks.ListItem
 import com.matt.belisle.commonmark.ast.leafBlocks.*
 import com.matt.belisle.commonmark.visitors.Visitor
+import com.matt.belisle.commonmark.visitors.linkReferenceDefinitionVisitor.LinkReferenceDefinitionVisitor
 import com.matt.belisle.commonmark.visitors.listVisitors.BlankLinePropagationVisitor
 import com.matt.belisle.commonmark.visitors.listVisitors.CreateListBlockVisitor
 
@@ -30,7 +31,7 @@ class BlockParser(
             BlankLine.Companion
         ),
         listOf(BlockQuote.Companion, ListItem.Companion),
-        listOf(BlankLinePropagationVisitor(), CreateListBlockVisitor())
+        listOf(LinkReferenceDefinitionVisitor(), BlankLinePropagationVisitor(), CreateListBlockVisitor())
     )
 
     private val allBlocks: List<IStaticMatchable<out Block>> = containers.plus(leaves)

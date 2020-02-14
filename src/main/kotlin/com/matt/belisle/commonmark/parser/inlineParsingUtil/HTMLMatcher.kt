@@ -63,7 +63,7 @@ class HTMLMatcher(line: String) {
         // closing tag if the next character is /
         return if(lexer.inspect('/')){
             lexer.advanceCharacter()
-            closingTag() && lexer.isEndOfLine()
+            closingTag() && lexer.isEndOfData()
         } else {
             val openingTag = openTag()
             if(openingTag && lexer.line.length == lexer.saveIndex()){
@@ -124,7 +124,7 @@ class HTMLMatcher(line: String) {
         // one character is enough to be a valid tagName, so the advanceWhile will move the lexer to the point the name is done
         // (with any tag name other than script, style, or pre)
         val tagName = lexer.returnMatchedWhile { isAsciiChar(it) || it.isDigit() || it == '-'}
-        return (lexer.inspect(this::testClosingBrace) || !lexer.isEndOfLine()) &&
+        return (lexer.inspect(this::testClosingBrace) || !lexer.isEndOfData()) &&
                 !(tagName.equals("script", true) ||
                         tagName.equals("style", true) ||
                         tagName.equals("pre", true))
@@ -150,7 +150,7 @@ class HTMLMatcher(line: String) {
         if(lexer.inspect('=') && !attributeValueSpecification()){
             return false
         }
-        return lexer.inspect(this::testClosingBrace) || !lexer.isEndOfLine()
+        return lexer.inspect(this::testClosingBrace) || !lexer.isEndOfData()
     }
 
     // An attribute value specification consists of optional whitespace,
@@ -162,7 +162,7 @@ class HTMLMatcher(line: String) {
 
         lexer.advanceCharacter()
         lexer.skipSpaces()
-        return !lexer.isEndOfLine() && attributeValue()
+        return !lexer.isEndOfData() && attributeValue()
 
     }
     //An attribute value consists of an unquoted attribute value,
@@ -178,12 +178,12 @@ class HTMLMatcher(line: String) {
             if ( !lexer.inspect { it == char }){
                 return false
             } else{
-                if (!lexer.isEndOfLine()) {
+                if (!lexer.isEndOfData()) {
                     lexer.advanceCharacter()
                 }
             }
         }
-        return lexer.inspect(this::testClosingBrace) || !lexer.isEndOfLine()
+        return lexer.inspect(this::testClosingBrace) || !lexer.isEndOfData()
     }
     //An unquoted attribute value is a nonempty string of characters not including whitespace, ", ', =, <, >, or `.
     private fun unquotedAttributeValue() {
@@ -214,7 +214,7 @@ class HTMLMatcher(line: String) {
         lexer.advanceCharacter()
 
         lexer.advanceWhile { testAttributeNameOpener(it) || it.isDigit() || it == '.' || it == '-' }
-        return !lexer.isEndOfLine()
+        return !lexer.isEndOfData()
     }
 
     private fun htmlComment(): Boolean {
@@ -226,7 +226,7 @@ class HTMLMatcher(line: String) {
         do {
             lexer.advanceWhile { it != '-' }
             dashes = lexer.advanceWhile { it == '-' }
-        }while(dashes != 2 && !lexer.isEndOfLine())
+        }while(dashes != 2 && !lexer.isEndOfData())
         if(dashes != 2){
             return false
         }
@@ -240,7 +240,7 @@ class HTMLMatcher(line: String) {
     private fun cData(): Boolean {
         do {
             lexer.advanceWhile { it != ']' }
-        } while(lexer.isEndOfLine())
+        } while(lexer.isEndOfData())
         return if(lexer.inspect("]]>")){
             lexer.advanceCharacter(2)
             true
@@ -252,7 +252,7 @@ class HTMLMatcher(line: String) {
     private fun processingInstruction(): Boolean {
         do {
             lexer.advanceWhile { it != '?' }
-        } while(lexer.isEndOfLine() && !lexer.inspect(">"))
+        } while(lexer.isEndOfData() && !lexer.inspect(">"))
         lexer.advanceCharacter()
         return lexer.inspect {it == '>'}
     }

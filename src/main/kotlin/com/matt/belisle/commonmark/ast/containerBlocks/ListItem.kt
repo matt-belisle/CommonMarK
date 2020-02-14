@@ -74,9 +74,11 @@ class ListItem private constructor(parent: Container, val startingNumber: Int, v
 
         private fun matchWithData(line: String, currentOpenBlock: Block, indentation: Int): Pair<Boolean, MarkerType> {
             // cannot be interpreted as a indented code block
+
             if(indentCheck(indentation) < line.countLeadingSpaces()) return Pair(false, MarkerType.NUMERIC_BRACKET)
-            val (matchNumeric, markerNumeric, startingNumber) = numericListMatch(line.trimStart(), currentOpenBlock)
-            val (matchBullet, markerBullet) = bulletListMatch(line.trimStart() , currentOpenBlock)
+            val trimmedFront = line.trimStart()
+            val (matchNumeric, markerNumeric, startingNumber) = numericListMatch(trimmedFront, currentOpenBlock)
+            val (matchBullet, markerBullet) = bulletListMatch(trimmedFront, currentOpenBlock)
 
             if(currentOpenBlock is Paragraph){
                 if(matchNumeric && startingNumber != 1){
