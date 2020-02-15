@@ -6,7 +6,8 @@ import java.net.URL
 import java.net.URLEncoder
 import java.nio.charset.Charset
 
-class Link (val destination: String, val title: String, var textEnd: Int = 0) : Inline() {
+class Link (val destination: String, title: String, var textEnd: Int = 0) : Inline() {
+    private val title = InlineString(title)
     val text: MutableList<Inline> = mutableListOf()
 
     /*
@@ -15,7 +16,8 @@ class Link (val destination: String, val title: String, var textEnd: Int = 0) : 
     <a href="dest">link</a> -- just dest
      */
     override fun render(entities: Boolean): String {
-        val titleRendered = if(title != "") " title=\"$title\"" else title
+
+        val titleRendered = if(title.strBuilder.isNotBlank()) " title=\"${title.render(entities = true)}\"" else ""
         val destinationRendered = if (destination != "") "href=\"${destination}\"" else ""
         val textB = StringBuilder()
         with(textB){

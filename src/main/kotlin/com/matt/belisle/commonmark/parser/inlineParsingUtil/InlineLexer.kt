@@ -92,16 +92,17 @@ class InlineLexer(val line: String){
     }
 
     // will skip spaces including up to a specified number of newlines
+    //if maxNewLines is -1 just skip as many as possible
     fun skipSpacesMaximumNewLines(maximumNewlines:Int) {
         // optional whitespace, this uses unicode whitespace, new line not going to advance through
         skipSpaces()
         //up to one line ending
         var i = 0
-        while(i < maximumNewlines) {
+        // -1 means infinite new lines
+        while(maximumNewlines == -1 || i < maximumNewlines) {
             if (inspect('\n')) {
                 advanceCharacter()
             } else {
-
                 break
             }
             skipSpaces()

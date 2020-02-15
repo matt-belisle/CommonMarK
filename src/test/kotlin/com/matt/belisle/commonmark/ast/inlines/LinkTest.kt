@@ -6,7 +6,9 @@ import org.junit.Test
 class LinkTest : BasicBlockTest() {
     @Test
     fun specTest(){
-        specTest(487)
+        //TODO 486, 498,499,500 URI Encoding otherwise correct
+        //TODO 503 import error, unicode whitespace thing
+        specTest(506)
         specTest("Links")
     }
 }

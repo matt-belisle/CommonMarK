@@ -5,6 +5,11 @@ import com.matt.belisle.commonmark.parser.createInlines
 import java.util.*
 
 object EntityReplacement {
+    private val htmlReservedEntities: Map<String, Entity> = mapOf<String, Entity>(
+    "\"" to  Entity(listOf(34), "&quot;"),
+    "<" to Entity(listOf(60), "&lt;"),
+    ">" to Entity(listOf(62), "&gt;")
+    )
     // this will inspect an inline and return a list containing the entities replaced
     fun inspect(string: String, html: Boolean): List<Inline> {
         if(string.isNotEmpty()) {
@@ -65,7 +70,14 @@ object EntityReplacement {
         } else if (lexer.inspect { it == '&' }) {
             val isEntity = isEntity(lexer)
             if (isEntity.first) {
-                metadata.add(InlineMetaData(savedIndex, lexer.saveIndex(), InlineTypes.ENTITY, isEntity.second))
+                // the entity may be one of the reserved ones, in which case dont replace with its character
+                if (htmlReservedEntities.containsKey(isEntity.second.characters)) {
+                    metadata.add(InlineMetaData(savedIndex, lexer.saveIndex(), InlineTypes.ENTITY,
+                        htmlReservedEntities.getValue(isEntity.second.characters)
+                    ))
+                } else{
+                    metadata.add(InlineMetaData(savedIndex, lexer.saveIndex(), InlineTypes.ENTITY, isEntity.second))
+                }
             } else {
                 metadata.add(InlineMetaData(savedIndex, savedIndex, InlineTypes.ENTITY, Entity(listOf(38), "&amp;")))
                 lexer.goTo(savedIndex)

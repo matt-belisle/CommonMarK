@@ -24,6 +24,7 @@ class LinkMatcher(line: String) {
           The link’s title consists of the link title, excluding its enclosing delimiters,
           with backslash-escapes in effect as described above.
          */
+        val startingBracket = lexer.saveIndex()
         if (!lexer.inspect('(')) {
             return falseReturn
         }
@@ -31,10 +32,20 @@ class LinkMatcher(line: String) {
 
         lexer.skipSpaces()
         val (hasDestination, destination) = linkDestination(true)
-        lexer.skipSpaces()
+        //test 506 specifies any amonut of whitespace
+        lexer.skipSpacesMaximumNewLines(-1)
         val (hasTitle, title) = linkTitle()
         lexer.skipSpaces()
+        // if you have no dest or title you must be just ()
+        if(!hasDestination && !hasTitle) {
+            return if(lexer.saveIndex() == startingBracket + 1) {
+                Triple(true, lexer.saveIndex(), Link(destination, title))
+            } else {
+                falseReturn
+            }
+        }
         //may be EOD
+
         if (lexer.inspect { it == ')' }) {
             return Triple(true, lexer.saveIndex(), Link(destination, title))
         }
@@ -43,10 +54,13 @@ class LinkMatcher(line: String) {
 
     private fun backslashEscaped(): Boolean {
         if (!lexer.isEndOfData()) {
+            lexer.advanceCharacter()
             if (lexer.inspect { it in ESCAPABLE }) {
                 return true
             }
         }
+        // we shouldnt change lexer state as nothing of interest happened
+        lexer.goBackOne()
         return false
     }
 
@@ -99,15 +113,14 @@ class LinkMatcher(line: String) {
         // skip the bracket, will be checked in linkDestination
         lexer.advanceCharacter()
         while (!lexer.isEndOfData()) {
-            var addCharacter = true
             // first check whether it was escaped or not
-            val char = lexer.getChar()
-            lexer.advanceCharacter()
+            var char = lexer.getChar()
             if (char == '<') {
                 if (!escapedBracket(lexer)) {
                     return falseReturn
                 }
             } else if (char == '>') {
+                lexer.advanceCharacter()
                 if (!escapedBracket(lexer)) {
                     return Pair(true, builder.toString())
                 }
@@ -116,20 +129,24 @@ class LinkMatcher(line: String) {
             } else if (char == '\\') {
                 if (backslashEscaped()) {
                     // just skip the backslash as its escaping something
-                    addCharacter = false
+                    char = lexer.getChar()
                 }
             } else if (char == '\n') {
                 //undo the advance
                 lexer.goBackOne()
                 return falseReturn
             }
-            if (addCharacter) {
-                builder.append(char)
-            }
+            builder.append(char)
+            lexer.advanceCharacter()
         }
-        // trailing '>' to end the paragraph
+        // trailing '>' to end the paragraph, but it cannot be scaped
         if (lexer.inspect { it == '>' }) {
-            return Pair(true, builder.toString())
+            lexer.goBackOne()
+            if(!backslashEscaped()) {
+                lexer.advanceCharacter()
+                return Pair(true, builder.toString())
+            }
+            lexer.advanceCharacter()
         }
         // reached EOI without matching the bracket
         return falseReturn
@@ -151,12 +168,9 @@ class LinkMatcher(line: String) {
         // or if when ) it is empty we return false
         val brackets = Stack<Char>()
         while (!lexer.isEndOfData()) {
-            var addCharacter = true
-            val char = lexer.getChar()
-            lexer.advanceCharacter()
+            var char = lexer.getChar()
             if (char == ' ') {
                 return if (brackets.isEmpty()) {
-                    lexer.goBackOne()
                     Pair(true, builder.toString())
                 } else {
                     falseReturn
@@ -176,16 +190,14 @@ class LinkMatcher(line: String) {
             } else if (char == '\\') {
                 if (backslashEscaped()) {
                     // just skip the backslash as its escaping something
-                    addCharacter = false
+                    char = lexer.getChar()
                 }
             } else if (char == '\n') {
-                //undo the advance
-                lexer.goBackOne()
-                return falseReturn
+                return Pair(true, builder.toString())
             }
-            if (addCharacter) {
-                builder.append(char)
-            }
+            builder.append(char)
+            lexer.advanceCharacter()
+
         }
         //EOL may need to add final character if not whitespace
         // or the inline end of link bracket
@@ -210,15 +222,13 @@ class LinkMatcher(line: String) {
             '(' -> ')'
             else -> return falseReturn
         }
+        // skip opening delimiter
         lexer.advanceCharacter()
         while (!lexer.isEndOfData()) {
-            var addCharacter = true
-            val char = lexer.getChar()
-            lexer.advanceCharacter()
+            var char = lexer.getChar()
             if (char == closer) {
-                if (!escapedBracket(lexer)) {
-                    return Pair(true, builder.toString())
-                }
+                lexer.advanceCharacter()
+                return Pair(true, builder.toString())
             } else if (char == '(' && closer == ')') {
                 if (!escapedBracket(lexer)) {
                     return falseReturn
@@ -226,12 +236,11 @@ class LinkMatcher(line: String) {
             } else if (char == '\\') {
                 if (backslashEscaped()) {
                     // just skip the backslash as its escaping something
-                    addCharacter = false
+                    char = lexer.getChar()
                 }
             }
-            if (addCharacter) {
-                builder.append(char)
-            }
+            builder.append(char)
+            lexer.advanceCharacter()
         }
 
 
