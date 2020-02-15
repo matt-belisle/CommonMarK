@@ -420,7 +420,7 @@ class InlineParser {
         //if there is no tail (no runs or '[' encountered yet) we cant do anything
         var opener: Node<Run>? = emphasisRuns.tail ?: return
 
-        while(opener != null && opener.element.delimiter != '['){
+        while(opener != null && !(opener.element.delimiter == '[' && linkText(lexer, preProcessIndex, opener.element.endingIndex))){
             opener = opener.prev
         }
         // unsuccessful
@@ -446,7 +446,34 @@ class InlineParser {
         }
     }
 }
-
+//returns whether the text between two indices is valid link text, (balanced bracket checking)
+private fun linkText(lexer: InlineLexer, start: Int, end: Int): Boolean {
+    //return it to its state at the end
+    val initial = lexer.saveIndex()
+    val s = Stack<Char>()
+    lexer.goTo(start)
+    lexer.goBackOne()
+    while(lexer.saveIndex() > end){
+        if(lexer.inspect(']')){
+            s.add(']')
+        } else if(lexer.inspect('[')){
+            // may be escaped
+            lexer.goBackOne()
+            if(!lexer.inspect { it == '\\' }) {
+                if (s.empty()) {
+                    lexer.goTo(initial)
+                    return false
+                } else {
+                    s.pop()
+                }
+            }
+            lexer.advanceCharacter()
+        }
+        lexer.goBackOne()
+    }
+    lexer.goTo(initial)
+    return s.empty()
+}
 private fun openEmphasis(openingNode: Node<Run>, closingNode: Node<Run>, inlineMetaData: PriorityQueue<InlineMetaData>, runs: DelimiterLinkedList<Run>) {
     val openLength = openingNode.element.length
     val closeLength = closingNode.element.length

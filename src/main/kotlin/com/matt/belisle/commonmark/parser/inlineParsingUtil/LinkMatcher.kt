@@ -182,7 +182,12 @@ class LinkMatcher(line: String) {
             } else if (char == ')') {
                 if (!escapedBracket(lexer)) {
                     if (brackets.isEmpty()) {
-                        return falseReturn
+                        // this will be fine, as it just ends in a bracket
+                        return if(inline){
+                            Pair(true, builder.toString())
+                        } else {
+                            falseReturn
+                        }
                     } else {
                         brackets.pop()
                     }
