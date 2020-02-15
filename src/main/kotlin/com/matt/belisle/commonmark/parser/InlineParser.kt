@@ -175,6 +175,13 @@ class InlineParser {
                     addInlineMetadata(matchedHTML, inlineLocations)
                 }
             }
+            '[' -> {
+                //add to image stack
+                emphasisRuns.addAtTail(Run(RunType.OPENER, '[', 1, lexer.saveIndex(), true))
+            }
+            ']' -> {
+                processLinkOrImage(emphasisRuns, inlineLocations, lexer)
+            }
             in validDelimiters -> {
                 if(emphasis) {
                     val startingIndex = lexer.saveIndex()
@@ -395,10 +402,47 @@ class InlineParser {
                     }
                 }
             }
+                if(!currentPosition.element.canOpen()){
+                    runs.remove(currentPosition)
+                }
                 currentPosition = currentPosition.next
             while(currentPosition != null && !currentPosition.element.canClose()){
                 currentPosition = currentPosition.next
             }
+        }
+    }
+
+
+    private fun processLinkOrImage(emphasisRuns: DelimiterLinkedList<Run>, inlineMetaData: PriorityQueue<InlineMetaData>, lexer: InlineLexer) {
+        //Assumes it is at the closing ']' of the link/image text
+        //This WILL change the state of the lexer if successful
+        val preProcessIndex = lexer.saveIndex()
+        //if there is no tail (no runs or '[' encountered yet) we cant do anything
+        var opener: Node<Run>? = emphasisRuns.tail ?: return
+
+        while(opener != null && opener.element.delimiter != '['){
+            opener = opener.prev
+        }
+        // unsuccessful
+        if(opener == null) return
+
+        val linkMatcher = LinkMatcher(lexer.subString(preProcessIndex + 1))
+        val (isLinkOrImage, endingIndex, link) = linkMatcher.link()
+        val image = lexer.getChar(opener.element.startingIndex - 1) == '!'
+        if(!isLinkOrImage){
+            return
+        }
+        if(image){ return }
+        else {
+            // we are now a link
+            // set all '[' before opener to inactive (remove them)
+            emphasisRuns.removeMatchingBeforeNode({it.element.delimiter == '['}, opener)
+            processEmphasis(emphasisRuns, opener, inlineMetaData)
+            // set the end of the text appropriately
+            link.textEnd = preProcessIndex
+            val normalizedEnding = endingIndex + preProcessIndex + 1
+            inlineMetaData.add(InlineMetaData(opener.element.startingIndex, normalizedEnding,InlineTypes.LINK, link))
+            lexer.goTo(normalizedEnding)
         }
     }
 }
@@ -450,11 +494,15 @@ fun createInlines(inlineMetaData: PriorityQueue<InlineMetaData>, line: String, d
             inlines.add(InlineString(line.substring(currentEnd, it.start)))
         }
         // make the next inline
-        if(it.type == InlineTypes.STRONG_EMPHASIS || it.type == InlineTypes.WEAK_EMPHASIS){
+        if(it.type == InlineTypes.STRONG_EMPHASIS || it.type == InlineTypes.WEAK_EMPHASIS || it.type == InlineTypes.LINK || it.type == InlineTypes.IMAGE){
+            val end =
+            if(it.type == InlineTypes.LINK) {
+                (it.extra as Link).textEnd
+            } else it.end
             val embedded: MutableList<InlineMetaData> = mutableListOf()
             i++
             val strong = if(it.type == InlineTypes.STRONG_EMPHASIS) 2 else 1
-            while(inlineMetaData.isNotEmpty() && inlineMetaData.peek().end < it.end){
+            while(inlineMetaData.isNotEmpty() && inlineMetaData.peek().end < end){
                 val metaData = inlineMetaData.poll()
                 embedded.add(metaData)
                 // normalize for recursive call
@@ -463,7 +511,7 @@ fun createInlines(inlineMetaData: PriorityQueue<InlineMetaData>, line: String, d
                 i++
             }
 
-            val emphasisPairRemoved = line.substring((it.start + strong), it.end - strong + 1)
+            val emphasisPairRemoved = line.substring((it.start + strong), end - strong + 1)
             val embeddedInlines = createInlines(PriorityQueue(embedded), emphasisPairRemoved, delimiters)
 
             it.extra = Pair(it.extra, embeddedInlines)
@@ -492,6 +540,7 @@ fun createInline(inlineMetaData: InlineMetaData, line: String, delimiters: List<
         InlineTypes.ENTITY -> InlineEntity(inlineMetaData.extra as Entity)
         InlineTypes.STRONG_EMPHASIS -> createEmphasis(inlineMetaData, delimiters)
         InlineTypes.WEAK_EMPHASIS -> createEmphasis(inlineMetaData, delimiters)
+        InlineTypes.LINK -> createLink(inlineMetaData)
         else -> throw ParsingException("Unknown inline type ${inlineMetaData.type}")
     }
 }
@@ -502,4 +551,9 @@ fun createEmphasis(inlineMetaData: InlineMetaData, delimiters: List<Emphasis<*>>
     val type: Emphasis<*> = delimiters.find { it.delimiter == extraData.first }!!
     return type.createEmphasis(extraData.second, inlineMetaData.type == InlineTypes.STRONG_EMPHASIS) as Inline
 
+}
+fun createLink(inlineMetadata: InlineMetaData): Inline{
+    val extraData: Pair<Link, List<Inline>> = inlineMetadata.extra as Pair<Link, List<Inline>>
+    extraData.first.text.addAll(extraData.second)
+    return extraData.first
 }

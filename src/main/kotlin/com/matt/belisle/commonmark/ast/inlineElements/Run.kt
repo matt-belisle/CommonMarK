@@ -1,6 +1,7 @@
 package com.matt.belisle.commonmark.ast.inlineElements
 
 //NONE will mean ignore the run
+//This also includes data for links
 enum class RunType {OPENER, CLOSER, BOTH, NONE}
 
 //represents a run  of a delimiter for emphasis parsing

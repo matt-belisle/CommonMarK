@@ -8,9 +8,9 @@ class EmphasisAndStrongEmphasisTest : BasicBlockTest() {
     @Test
     fun specTest(){
         /* TODO 353 is import error due to unicode whitespace
-         403, 418, 421, 432, 472, 473 links not done
+         403, 418, 421, 432links not done
          */
-        specTest(468)
+//        specTest(473)
         specTest("Emphasis and strong emphasis")
     }
 }

@@ -18,7 +18,7 @@ class Node<T>(var element: T){
 class DelimiterLinkedList<T> {
     var length = 0
     var head:Node<T>? = null
-    private var tail:Node<T>? = null
+    var tail:Node<T>? = null
 
 
 
@@ -56,8 +56,8 @@ class DelimiterLinkedList<T> {
         this.length++
     }
 
-    fun getNode(index: Int): Any?{
-        if (index >= this.length || index < 0) return -1
+    fun getNode(index: Int): Node<T>?{
+        if (index >= this.length || index < 0) return null
         var curr = 0
         var h = this.head
         while (curr < index){
@@ -120,5 +120,15 @@ class DelimiterLinkedList<T> {
         node.next?.prev = node.prev
         node.prev?.next = node.next
         length--
+    }
+    fun removeMatchingBeforeNode(f:  (Node<T>) -> Boolean, node: Node<T>){
+        var h = head
+        while(h != null && h != node){
+            if(f(h)){
+                //remove the node
+                remove(h)
+            }
+            h = h.next
+        }
     }
 }
