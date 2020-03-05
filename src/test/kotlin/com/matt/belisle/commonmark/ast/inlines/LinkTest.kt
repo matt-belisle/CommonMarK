@@ -7,8 +7,8 @@ class LinkTest : BasicBlockTest() {
     @Test
     fun specTest(){
         //TODO 503 import error, unicode whitespace thing
-        //TODO 513 Image
-        specTest(499)
+        //TODO 513, 516 Image
+        specTest(515)
         specTest("Links")
     }
 }

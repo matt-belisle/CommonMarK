@@ -2,6 +2,7 @@ package com.matt.belisle.commonmark.ast.leafBlocks
 
 import com.matt.belisle.commonmark.ast.*
 import com.matt.belisle.commonmark.ast.containerBlocks.Container
+import com.matt.belisle.commonmark.ast.inlineElements.Emphasis
 import com.matt.belisle.commonmark.ast.inlineElements.InlineString
 import com.matt.belisle.commonmark.parser.InlineParser
 import com.matt.belisle.commonmark.parser.inlineParsingUtil.EntityReplacement
@@ -48,8 +49,10 @@ class IndentedCodeBlock(indent: Int, parent: Container) : Leaf(indent = indent, 
         return builder.toString()
     }
 
-    override fun analyzeInlines(inlineParser: InlineParser) {
-        //noop for codeBlocks until special character parsing has been implemented
+    override fun analyzeInlines(inlineParser: InlineParser,
+                                delimiters: List<Emphasis<*>>,
+                                linkReferences: Map<String, LinkReferenceDefinition>) {
+        //noop for codeBlocks
     }
 
     companion object : IStaticMatchableLeaf<IndentedCodeBlock> {

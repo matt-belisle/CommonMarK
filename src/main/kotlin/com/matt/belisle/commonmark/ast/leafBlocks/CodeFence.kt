@@ -1,9 +1,11 @@
 import com.matt.belisle.commonmark.ast.*
 import com.matt.belisle.commonmark.ast.containerBlocks.Container
+import com.matt.belisle.commonmark.ast.inlineElements.Emphasis
 import com.matt.belisle.commonmark.ast.inlineElements.Inline
 import com.matt.belisle.commonmark.ast.leafBlocks.Leaf
 
 import com.matt.belisle.commonmark.ast.inlineElements.InlineString
+import com.matt.belisle.commonmark.ast.leafBlocks.LinkReferenceDefinition
 import com.matt.belisle.commonmark.parser.InlineParser
 import java.lang.StringBuilder
 
@@ -55,8 +57,10 @@ class CodeFence private constructor(
         return builder.toString()
     }
 
-    override fun analyzeInlines(inlineParser: InlineParser) {
-        val analyzed = inlineParser.analyzeLine(infoString);
+    override fun analyzeInlines(inlineParser: InlineParser,
+                                delimiters: List<Emphasis<*>>,
+                                linkReferences: Map<String, LinkReferenceDefinition>) {
+        val analyzed = inlineParser.analyzeLine(infoString, delimiters = delimiters, linkReferences = linkReferences);
         infoString.clear()
         infoString.addAll(analyzed)
 

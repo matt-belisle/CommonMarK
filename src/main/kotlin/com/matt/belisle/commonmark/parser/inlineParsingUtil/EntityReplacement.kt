@@ -119,6 +119,7 @@ object EntityReplacement {
             }
             if (numeric) {
                 //first decimal check
+                // at most 7 digits first char is #
                 if (!hex && characters in 2..8) {
                     lexer.goTo(savedIndex + 2)
                     if (lexer.advanceWhile { it.isDigit() } == characters - 1) {
@@ -129,6 +130,7 @@ object EntityReplacement {
                         val char = getCharFromCodepoint(codePoint)
                         return Pair(true, Entity(listOf(codePoint), char.toString()))
                     }
+                    // at most 6 hex digits, first 2 are #x
                 } else if (hex && characters in 3..8) {
                     //could be a hex entity
                     lexer.goTo(savedIndex + 3)

@@ -2,6 +2,7 @@ package com.matt.belisle.commonmark.ast.leafBlocks
 
 import com.matt.belisle.commonmark.ast.Block
 import com.matt.belisle.commonmark.ast.containerBlocks.Container
+import com.matt.belisle.commonmark.ast.inlineElements.Emphasis
 import com.matt.belisle.commonmark.ast.inlineElements.Inline
 import com.matt.belisle.commonmark.parser.InlineParser
 import java.lang.StringBuilder
@@ -32,8 +33,8 @@ abstract class Leaf(parent: Container, indent: Int) : Block(parent = parent, ind
 
 
     // default implementation for analyzing your inline elements
-    open fun analyzeInlines(inlineParser: InlineParser){
-        val analyzed = inlineParser.analyzeLine(inline)
+    open fun analyzeInlines(inlineParser: InlineParser, delimiters: List<Emphasis<*>>, linkReferences: Map<String, LinkReferenceDefinition>){
+        val analyzed = inlineParser.analyzeLine(inlines = inline, delimiters = delimiters, linkReferences = linkReferences)
         inline.clear()
         inline.addAll(analyzed)
     }

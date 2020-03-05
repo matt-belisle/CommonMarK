@@ -4,6 +4,7 @@ import com.matt.belisle.commonmark.ast.Document
 import com.matt.belisle.commonmark.ast.containerBlocks.Container
 import com.matt.belisle.commonmark.ast.inlineElements.*
 import com.matt.belisle.commonmark.ast.leafBlocks.Leaf
+import com.matt.belisle.commonmark.ast.leafBlocks.LinkReferenceDefinition
 import com.matt.belisle.commonmark.parser.inlineParsingUtil.*
 import kotlinx.coroutines.*
 import java.util.*
@@ -13,26 +14,26 @@ import java.util.*
 // it will not be accepting new things like code spans (although similar could be done with emphasis)
 
 class InlineParser {
-    fun parse(document: Document): Document {
+    fun parse(document: Document, delimiters: List<Emphasis<*>>, linkReferences: Map<String, LinkReferenceDefinition>): Document {
 
-       runBlocking { parseLeaves(allLeaves(document)) }
+       runBlocking { parseLeaves(allLeaves(document),delimiters,linkReferences) }
 
         return document
     }
 
-    private suspend fun parseLeaves(leaves: List<Leaf>){
+    private suspend fun parseLeaves(leaves: List<Leaf>, delimiters: List<Emphasis<*>>, linkReferences: Map<String, LinkReferenceDefinition>){
         coroutineScope {
-            // launches all leaves into seperate coroutines to be dealt with as they can
-            leaves.forEach { launch { analyzeBlock(it) } }
+            // launches all leaves into separate coroutines to be dealt with as they can
+            leaves.forEach { launch { analyzeBlock(it, delimiters, linkReferences) } }
         }
     }
 
-    private fun analyzeBlock(leaf: Leaf){
+    private fun analyzeBlock(leaf: Leaf, delimiters: List<Emphasis<*>>, linkReferences: Map<String, LinkReferenceDefinition>){
 
         // this will use double dispatch for the line, this allows the block to decide what fields will be analyzed
         // this is useful for code fence, which wants its info string to be analyzed but NOT its body or tables
         // for github flavored as each cell could be analyzed
-        leaf.analyzeInlines(this)
+        leaf.analyzeInlines(this, delimiters, linkReferences)
     }
 
     private fun allLeaves(container: Container): List<Leaf>{
@@ -46,7 +47,7 @@ class InlineParser {
         }
         return ret
     }
-    // this is a lot of the CPU time
+
     private fun elaborateInlines(inlines: List<Inline>): String{
         //should be only called on lists of inlineStrings
         return (inlines[0] as InlineString).strBuilder.toString()
@@ -73,7 +74,10 @@ class InlineParser {
                     codeSpans: Boolean = true,
                     backslashEscape: Boolean = true,
                     autoLinks: Boolean = true,
-                    html: Boolean = true, delimiters: List<Emphasis<*>> = listOf(EmphasisUnderscore.Companion, EmphasisAsterisk.Companion)): List<Inline> {
+                    html: Boolean = true,
+                    link: Boolean = true,
+                    delimiters: List<Emphasis<*>> = listOf(EmphasisUnderscore.Companion, EmphasisAsterisk.Companion),
+                    linkReferences: Map<String, LinkReferenceDefinition>): List<Inline> {
         // this will keep inlines in order of index on the string, this will require some fancy work to create the inlines successfully
         // I'm thinking a subString matcher on beginning and end then remaking all internal metadata with indexes shifted by start of outer container
         val inlineLocations: PriorityQueue<InlineMetaData> = PriorityQueue()
@@ -101,6 +105,7 @@ class InlineParser {
                 backslashEscape,
                 autoLinks,
                 html,
+                link,
                 validDelimiters,
                 runCreators,
                 emphasisRuns,
@@ -121,6 +126,7 @@ class InlineParser {
                 backslashEscape,
                 autoLinks,
                 html,
+                link,
                 validDelimiters,
                 runCreators,
                 emphasisRuns,
@@ -141,6 +147,7 @@ class InlineParser {
         backslashEscape: Boolean,
         autoLinks: Boolean,
         html: Boolean,
+        links: Boolean,
         validDelimiters: MutableSet<Char>,
         runCreators: MutableMap<Char, (Int, Char, Char, Int) -> Run>,
         emphasisRuns: DelimiterLinkedList<Run>,
@@ -177,10 +184,14 @@ class InlineParser {
             }
             '[' -> {
                 //add to image stack
-                emphasisRuns.addAtTail(Run(RunType.OPENER, '[', 1, lexer.saveIndex(), true))
+                if(links) {
+                    emphasisRuns.addAtTail(Run(RunType.OPENER, '[', 1, lexer.saveIndex(), true))
+                }
             }
             ']' -> {
-                processLinkOrImage(emphasisRuns, inlineLocations, lexer)
+                if(links) {
+                    processLinkOrImage(emphasisRuns, inlineLocations, lexer)
+                }
             }
             in validDelimiters -> {
                 if(emphasis) {
@@ -510,7 +521,6 @@ fun createInlines(inlineMetaData: PriorityQueue<InlineMetaData>, line: String, d
     // so we can do some inspection on it without losing when we pop
     val inlines = mutableListOf<Inline>()
     // I believe the only container Inline is emphasis (that is parsed at first pass, link titles and such will be parsed again)
-    // for simplicity until ones with internal inlines can be created none of these will have internals
 
     // an Inline String will need to be created if the current ending is less than the next start
     var currentEnd = 0
@@ -529,16 +539,20 @@ fun createInlines(inlineMetaData: PriorityQueue<InlineMetaData>, line: String, d
             val embedded: MutableList<InlineMetaData> = mutableListOf()
             i++
             val strong = if(it.type == InlineTypes.STRONG_EMPHASIS) 2 else 1
+            val normalizedDifference = it.start + strong
             while(inlineMetaData.isNotEmpty() && inlineMetaData.peek().end < end){
                 val metaData = inlineMetaData.poll()
                 embedded.add(metaData)
                 // normalize for recursive call
-                metaData.start -=it.start+strong
-                metaData.end -= it.start+strong
+                metaData.start -= normalizedDifference
+                metaData.end -= normalizedDifference
+                if(metaData.type == InlineTypes.LINK){
+                    (metaData.extra as Link).textEnd -= normalizedDifference
+                }
                 i++
             }
 
-            val emphasisPairRemoved = line.substring((it.start + strong), end - strong + 1)
+            val emphasisPairRemoved = line.substring(normalizedDifference, end - strong + 1)
             val embeddedInlines = createInlines(PriorityQueue(embedded), emphasisPairRemoved, delimiters)
 
             it.extra = Pair(it.extra, embeddedInlines)

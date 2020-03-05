@@ -32,7 +32,7 @@ class LinkMatcher(line: String) {
 
         lexer.skipSpaces()
         val (hasDestination, destination) = linkDestination(true)
-        //test 506 specifies any amonut of whitespace
+        //test 506 specifies any amount of whitespace
         lexer.skipSpacesMaximumNewLines(-1)
         val (hasTitle, title) = linkTitle()
         lexer.skipSpaces()

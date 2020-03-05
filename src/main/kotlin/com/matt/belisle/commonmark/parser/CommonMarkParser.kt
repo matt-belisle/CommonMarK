@@ -7,6 +7,9 @@ import com.matt.belisle.commonmark.ast.IStaticMatchableLeaf
 import com.matt.belisle.commonmark.ast.containerBlocks.BlockQuote
 import com.matt.belisle.commonmark.ast.containerBlocks.Container
 import com.matt.belisle.commonmark.ast.containerBlocks.ListItem
+import com.matt.belisle.commonmark.ast.inlineElements.Emphasis
+import com.matt.belisle.commonmark.ast.inlineElements.EmphasisAsterisk
+import com.matt.belisle.commonmark.ast.inlineElements.EmphasisUnderscore
 import com.matt.belisle.commonmark.ast.leafBlocks.*
 import com.matt.belisle.commonmark.visitors.linkReferenceDefinitionVisitor.LinkReferenceDefinitionVisitor
 import com.matt.belisle.commonmark.visitors.listVisitors.BlankLinePropagationVisitor
@@ -21,7 +24,8 @@ import java.time.Instant
 class CommonMarkParser(
     private val leaves: List<IStaticMatchableLeaf<out Leaf>>,
     private val containers: List<IStaticMatchableContainer<out Container>>,
-    private val visitors: List<com.matt.belisle.commonmark.visitors.Visitor>
+    private val visitors: List<com.matt.belisle.commonmark.visitors.Visitor>,
+    private val emphasisTypes: List<Emphasis<*>>
 ) {
     private val blockParser: BlockParser = BlockParser(leaves, containers, visitors)
     private val inlineParser = InlineParser()
@@ -36,7 +40,8 @@ class CommonMarkParser(
             BlankLine.Companion
         ),
         listOf(BlockQuote.Companion, ListItem.Companion),
-        listOf(LinkReferenceDefinitionVisitor(),BlankLinePropagationVisitor(), CreateListBlockVisitor())
+        listOf(LinkReferenceDefinitionVisitor(),BlankLinePropagationVisitor(), CreateListBlockVisitor()),
+        listOf(EmphasisUnderscore.Companion, EmphasisAsterisk.Companion)
     )
 
     fun parse(data: List<String>): Document {
@@ -46,7 +51,12 @@ class CommonMarkParser(
 //        val end = Instant.now()
 //        println("TotalTime: ${Duration.between(begin, end)}")
 //        return inlineParser.parse(doc)
-        return inlineParser.parse(blockParser.parse(data))
+        // add LRDS and emphasis here
+        val linkReferenceVisitor = visitors.firstOrNull { it is LinkReferenceDefinitionVisitor }
+        val linkReferences = if(linkReferenceVisitor != null){
+            (linkReferenceVisitor as LinkReferenceDefinitionVisitor).linkReferences
+        } else emptyMap<String, LinkReferenceDefinition>()
+        return inlineParser.parse(blockParser.parse(data), emphasisTypes, linkReferences)
 
         //parse the inlines (can be done in parallel)
 

@@ -3,6 +3,7 @@ package com.matt.belisle.commonmark.ast.leafBlocks
 import com.matt.belisle.commonmark.ast.Block
 import com.matt.belisle.commonmark.ast.IStaticMatchableLeaf
 import com.matt.belisle.commonmark.ast.containerBlocks.Container
+import com.matt.belisle.commonmark.ast.inlineElements.Emphasis
 import com.matt.belisle.commonmark.parser.InlineParser
 import java.lang.Exception
 
@@ -29,7 +30,11 @@ class BlankLine private constructor(parent: Container, indent: Int) : Leaf(paren
         return line.isBlank()
     }
 
-    override fun analyzeInlines(inlineParser: InlineParser) {
+    override fun analyzeInlines(
+        inlineParser: InlineParser,
+        delimiters: List<Emphasis<*>>,
+        linkReferences: Map<String, LinkReferenceDefinition>
+    ) {
         //noop as no data
     }
 
