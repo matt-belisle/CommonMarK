@@ -1,10 +1,8 @@
 package com.matt.belisle.commonmark.ast.inlineElements
 
+import com.matt.belisle.commonmark.parser.inlineParsingUtil.EntityReplacement
+import com.matt.belisle.commonmark.parser.inlineParsingUtil.Escaping
 import java.lang.StringBuilder
-import java.net.URI
-import java.net.URL
-import java.net.URLEncoder
-import java.nio.charset.Charset
 
 class Link (val destination: String, title: String, var textEnd: Int = 0) : Inline() {
     private val title = InlineString(title)
@@ -18,11 +16,12 @@ class Link (val destination: String, title: String, var textEnd: Int = 0) : Inli
     override fun render(entities: Boolean): String {
 
         val titleRendered = if(title.strBuilder.isNotBlank()) " title=\"${title.render(entities = true)}\"" else ""
-        val destinationRendered = if (destination != "") "href=\"${destination}\"" else ""
+        val entitiesDest = EntityReplacement.inspect(destination, false)
+        val destinationWithEntitiesRemoved = renderEntities(entitiesDest)
         val textB = StringBuilder()
         with(textB){
             text.forEach { append(it.render(entities)) }
         }
-        return "<a href=\"$destination\"$titleRendered>$textB</a>"
+        return "<a href=\"${Escaping.percentEncodeUrl(destinationWithEntitiesRemoved)}\"$titleRendered>$textB</a>"
     }
 }

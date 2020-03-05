@@ -14,7 +14,8 @@ abstract class Inline {
 
         with(builder) {
             entities.forEach { inline ->
-                append(inline.render())
+                // no more entities
+                append(inline.render(false))
             }
         }
         return builder.toString()

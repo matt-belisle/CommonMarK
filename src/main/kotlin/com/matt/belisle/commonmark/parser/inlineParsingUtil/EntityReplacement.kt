@@ -21,16 +21,12 @@ object EntityReplacement {
                 do {
                     lexer.advanceWhile { it != '&' }
                     val savedIndex = lexer.saveIndex()
-                    val entity = lexer.subString(savedIndex, lexer.saveIndex() + 1)
-                    if (HTML_ENTITIES.containsKey(entity)) {
-                        mutMetaData.add(
-                            InlineMetaData(
-                                savedIndex,
-                                lexer.saveIndex(),
-                                InlineTypes.ENTITY,
-                                HTML_ENTITIES.getValue(entity)
-                            )
-                        )
+                    val isEntity = isEntity(lexer)
+                    if(isEntity.first){
+                        mutMetaData.add(InlineMetaData(savedIndex, lexer.saveIndex(), InlineTypes.ENTITY, isEntity.second))
+                    }
+                     else{
+                        lexer.advanceCharacter()
                     }
                 } while (!lexer.isEndOfData())
                 mutMetaData

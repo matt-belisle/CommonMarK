@@ -8,6 +8,7 @@ import com.matt.belisle.commonmark.ast.containerBlocks.ListContainer
 import com.matt.belisle.commonmark.ast.containerBlocks.ListItem
 import com.matt.belisle.commonmark.ast.inlineElements.InlineString
 import com.matt.belisle.commonmark.ast.leafBlocks.*
+import com.matt.belisle.commonmark.parser.inlineParsingUtil.Escaping
 import com.matt.belisle.commonmark.parser.inlineParsingUtil.InlineLexer
 import com.matt.belisle.commonmark.visitors.PostOrderTraversalVisitor
 import java.lang.StringBuilder
@@ -100,9 +101,11 @@ class LinkReferenceDefinitionVisitor : PostOrderTraversalVisitor() {
     }
 
     private fun addLinkReference(label: String, destination: String, title: String = "") {
-        if (!linkReferences.containsKey(label)) {
+        //normalize the label
+        val normalized = Escaping.normalizeLabelContent(label)
+        if (!linkReferences.containsKey(normalized)) {
             // empty title, add the valid LRD to the map and this is a terminal ending as the input is done
-            linkReferences[label] = LinkReferenceDefinition(destination, title)
+            linkReferences[normalized] = LinkReferenceDefinition(destination, title)
         }
     }
 
