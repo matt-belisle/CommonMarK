@@ -18,7 +18,7 @@ object Escaping {
     // From RFC 3986 (see "reserved", "unreserved") except don't escape '[' or ']' to be compatible with JS encodeURI
     private val ESCAPE_IN_URI =
         Pattern.compile("(%[a-fA-F0-9]{0,2}|[^:/?#@!$&'()*+,;=a-zA-Z0-9\\-._~])")
-    private val HEX_DIGITS =
+    public val HEX_DIGITS =
         charArrayOf('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F')
     private val WHITESPACE = Pattern.compile("[ \t\r\n]+")
 

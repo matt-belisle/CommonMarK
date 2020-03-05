@@ -26,16 +26,10 @@ class CodeSpan(str: String) : Inline(){
         }
         this.code = normalized
     }
+    // codeSpan ignores entities
     override fun render(entities: Boolean): String {
         val code = if(entities){
-            val entities = EntityReplacement.inspect(code, true)
-            val builder = StringBuilder()
-            with(builder){
-                entities.forEach {
-                    append(it.render())
-                }
-            }
-            builder.toString()
+            EntityReplacement.replaceHTMLReserved(code)
         } else {
             code
         }

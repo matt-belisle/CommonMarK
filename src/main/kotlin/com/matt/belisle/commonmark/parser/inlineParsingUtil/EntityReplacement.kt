@@ -2,14 +2,30 @@ package com.matt.belisle.commonmark.parser.inlineParsingUtil
 
 import com.matt.belisle.commonmark.ast.inlineElements.Inline
 import com.matt.belisle.commonmark.parser.createInlines
+import java.lang.StringBuilder
 import java.util.*
 
 object EntityReplacement {
     private val htmlReservedEntities: Map<String, Entity> = mapOf<String, Entity>(
     "\"" to  Entity(listOf(34), "&quot;"),
     "<" to Entity(listOf(60), "&lt;"),
-    ">" to Entity(listOf(62), "&gt;")
+    ">" to Entity(listOf(62), "&gt;"),
+    "&" to Entity(listOf(38), "&amp;"),
+    "'" to Entity(listOf(39), "&apos;")
     )
+
+    fun replaceHTMLReserved(string: String): String {
+        val builder = StringBuilder()
+        for(char in string) {
+            if (char.toString() in htmlReservedEntities.keys) {
+                // safe as we just checked
+                builder.append(htmlReservedEntities.getValue(char.toString()).characters)
+            } else {
+                builder.append(char)
+            }
+        }
+            return builder.toString()
+    }
     // this will inspect an inline and return a list containing the entities replaced
     fun inspect(string: String, html: Boolean): List<Inline> {
         if(string.isNotEmpty()) {
@@ -103,30 +119,33 @@ object EntityReplacement {
             }
             if (numeric) {
                 //first decimal check
-                if (!hex && characters in 1..7) {
-                    lexer.goTo(savedIndex + 1)
-                    if (lexer.advanceWhile { it.isDigit() } == characters) {
+                if (!hex && characters in 2..8) {
+                    lexer.goTo(savedIndex + 2)
+                    if (lexer.advanceWhile { it.isDigit() } == characters - 1) {
                         //parse out the numeric
-                        val isNumeric = lexer.subString(savedIndex + 2, lexer.saveIndex() + 1)
+                        val isNumeric = lexer.subString(savedIndex + 2, lexer.saveIndex())
                         // get the unicodeCharacter
                         val codePoint = isNumeric.toInt()
-                        val char = codePoint.toChar()
+                        val char = getCharFromCodepoint(codePoint)
                         return Pair(true, Entity(listOf(codePoint), char.toString()))
                     }
-                } else if (hex && characters in 2..7)
-                //could be a hex entity
-                    lexer.goTo(savedIndex + 2)
-                if (lexer.advanceWhile { it.isDigit() } == characters - 1) {
-                    //parse out the numeric
-                    val isNumeric = lexer.subString(savedIndex + 3, lexer.saveIndex() + 1)
-                    // get the unicodeCharacter
-                    val codePoint = isNumeric.toInt(16)
-                    val char = codePoint.toChar()
-                    return Pair(true, Entity(listOf(codePoint), char.toString()))
+                } else if (hex && characters in 3..8) {
+                    //could be a hex entity
+                    lexer.goTo(savedIndex + 3)
+                    if (lexer.advanceWhile { it.toUpperCase() in Escaping.HEX_DIGITS } == characters - 2) {
+                        val isNumeric = lexer.subString(savedIndex + 3, lexer.saveIndex())
+                        // get the unicodeCharacter
+                        val codePoint = isNumeric.toInt(16)
+                        val char = getCharFromCodepoint(codePoint)
+                        return Pair(true, Entity(listOf(codePoint), char.toString()))
+                    }
                 }
             }
         }
         return Pair(false, Entity(emptyList(), ""))
     }
+
+    private fun getCharFromCodepoint(codePoint: Int) = if(codePoint != 0) codePoint.toChar() else '\uFFFD'
+
     private fun htmlReserved(it: Char) = it != '\'' && it != '"' && it != '&' && it != '<' && it != '>'
 }

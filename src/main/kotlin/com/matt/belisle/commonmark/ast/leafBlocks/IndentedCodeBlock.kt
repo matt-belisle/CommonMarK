@@ -4,6 +4,7 @@ import com.matt.belisle.commonmark.ast.*
 import com.matt.belisle.commonmark.ast.containerBlocks.Container
 import com.matt.belisle.commonmark.ast.inlineElements.InlineString
 import com.matt.belisle.commonmark.parser.InlineParser
+import com.matt.belisle.commonmark.parser.inlineParsingUtil.EntityReplacement
 import java.lang.StringBuilder
 
 
@@ -34,7 +35,11 @@ class IndentedCodeBlock(indent: Int, parent: Container) : Leaf(indent = indent, 
             append("<pre><code>")
             for (i in 0..lastNonBlankLine) {
                 val inlineString = inline[i]
-                append(inlineString.render())
+                if(inlineString is InlineString) {
+                    append(EntityReplacement.replaceHTMLReserved(inlineString.strBuilder.toString()))
+                } else {
+                    append(inlineString.render())
+                }
 //                if(inlineString != inline.last())
                 append('\n')
             }
