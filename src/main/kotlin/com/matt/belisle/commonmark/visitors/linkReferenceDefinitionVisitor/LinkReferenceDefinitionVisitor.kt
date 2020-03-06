@@ -149,13 +149,13 @@ class LinkReferenceDefinitionVisitor : PostOrderTraversalVisitor() {
             // first check whether it was escaped or not
             val char = lexer.getChar()
             if(char == '['){
-                if(!escapedBracket(lexer)){
+                if(!Escaping.escapedBracket(lexer)){
                     return falseReturn
                 } else {
                     builder.append('[')
                 }
             } else if(char == ']'){
-                if(!escapedBracket(lexer)){
+                if(!Escaping.escapedBracket(lexer)){
                     lexer.advanceCharacter()
                     val label = builder.toString()
                     if(label.length > 999 || label.isBlank()){
@@ -189,11 +189,11 @@ class LinkReferenceDefinitionVisitor : PostOrderTraversalVisitor() {
             val char = lexer.getChar()
             lexer.advanceCharacter()
             if(char == '<'){
-                if(!escapedBracket(lexer)){
+                if(!Escaping.escapedBracket(lexer)){
                     return falseReturn
                 }
             } else if(char == '>'){
-                if(!escapedBracket(lexer)){
+                if(!Escaping.escapedBracket(lexer)){
                     return Pair(true, builder.toString())
                 }
             } else if(char == '\n'){
@@ -233,11 +233,11 @@ class LinkReferenceDefinitionVisitor : PostOrderTraversalVisitor() {
                     falseReturn
                 }
             } else if(char == '('){
-                if(!escapedBracket(lexer)){
+                if(!Escaping.escapedBracket(lexer)){
                     brackets.push(char)
                 }
             } else if(char == ')'){
-                if(!escapedBracket(lexer)){
+                if(!Escaping.escapedBracket(lexer)){
                     if(brackets.isEmpty()){
                         return falseReturn
                     } else{
@@ -274,11 +274,11 @@ class LinkReferenceDefinitionVisitor : PostOrderTraversalVisitor() {
             val char = lexer.getChar()
             lexer.advanceCharacter()
             if(char == closer){
-                if(!escapedBracket(lexer)){
+                if(!Escaping.escapedBracket(lexer)){
                     return Pair(true, builder.toString())
                 }
             } else if(char == '(' && closer == ')'){
-                if(!escapedBracket(lexer)){
+                if(!Escaping.escapedBracket(lexer)){
                     return falseReturn
                 }
             }
@@ -291,18 +291,6 @@ class LinkReferenceDefinitionVisitor : PostOrderTraversalVisitor() {
             return Pair(true, builder.toString())
         }
         return falseReturn
-    }
-    // assumes that the following text is a square bracket
-    //TODO A lot of this functionality is duplicated inside of LinkMatcher
-    private fun escapedBracket(lexer: InlineLexer): Boolean{
-        var backslashes = 0
-        do{
-            lexer.goBackOne()
-            if(lexer.inspect('\\')) backslashes++
-        } while (lexer.inspect('\\'))
-        val ret = backslashes % 2 == 1
-        lexer.advanceCharacter(backslashes + 1)
-        return ret
     }
 
 }
