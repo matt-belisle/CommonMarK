@@ -6,7 +6,7 @@ class LinkReferenceDefinitionTest: BasicBlockTest(){
 
     @Test
     fun specTest() {
-        specTest(173)
+        specTest(163)
         specTest("Link reference definitions")
 
     }

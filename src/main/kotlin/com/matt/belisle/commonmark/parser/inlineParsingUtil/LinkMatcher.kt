@@ -2,19 +2,34 @@ package com.matt.belisle.commonmark.parser.inlineParsingUtil
 
 import com.matt.belisle.commonmark.ast.inlineElements.ESCAPABLE
 import com.matt.belisle.commonmark.ast.inlineElements.Link
+import com.matt.belisle.commonmark.ast.leafBlocks.LinkReferenceDefinition
 import java.lang.StringBuilder
 import java.util.*
-
+enum class typeOfLink{
+    INLINE_LINK, FULL, COLLAPSED, SHORTCUT
+}
+data class MatchedLink(val matched: Boolean, val endOfLinkIndex: Int, val link: Link, val typeOfLink: typeOfLink)
 //This matcher will not be concerned with link references that are valid references, only whether the syntax is correct
 //For inline links only concerned with post br
-class LinkMatcher(line: String) {
+class LinkMatcher(line: String, private val linkReferences: Map<String, LinkReferenceDefinition>) {
     private val lexer = InlineLexer(line)
     //either an inline link or a reference link
-    fun link(): Triple<Boolean, Int, Link> {
-        return inlineLink()
+    // note link Text will be used as the first label in collapsed and shortcut, and ignored otherwise
+    fun link(linkText: String): MatchedLink {
+        // in precedence order resetting the lexer for each
+        val inlineLink = inlineLink()
+        if(inlineLink.matched) return inlineLink
+        lexer.goTo(0)
+        val fullReferenceLink = fullReferenceLink()
+        if(fullReferenceLink.matched) return fullReferenceLink
+        lexer.goTo(0)
+        val collapsedReferenceLink = collapsedReferenceLink(linkText)
+        if(collapsedReferenceLink.matched) return collapsedReferenceLink
+        lexer.goTo(0)
+        return shortcutReferenceLink(linkText)
     }
 
-    private fun inlineLink(): Triple<Boolean, Int, Link> {
+    private fun inlineLink(): MatchedLink{
         /*
         An inline link consists of a link text followed immediately by a left parenthesis (, optional whitespace,
         an optional link destination, an optional link title separated from the link destination by whitespace,
@@ -31,15 +46,15 @@ class LinkMatcher(line: String) {
         lexer.advanceCharacter()
 
         lexer.skipSpaces()
-        val (hasDestination, destination) = linkDestination(true)
+        val (hasDestination, destination) = linkDestination(true, this.lexer)
         //test 506 specifies any amount of whitespace
         lexer.skipSpacesMaximumNewLines(-1)
-        val (hasTitle, title) = linkTitle()
+        val (hasTitle, title) = linkTitle(lexer)
         lexer.skipSpaces()
         // if you have no dest or title you must be just ()
         if(!hasDestination && !hasTitle) {
             return if(lexer.saveIndex() == startingBracket + 1) {
-                Triple(true, lexer.saveIndex(), Link(destination, title))
+                MatchedLink(true, lexer.saveIndex(), Link(destination, title), typeOfLink.INLINE_LINK)
             } else {
                 falseReturn
             }
@@ -47,9 +62,47 @@ class LinkMatcher(line: String) {
         //may be EOD
 
         if (lexer.inspect { it == ')' }) {
-            return Triple(true, lexer.saveIndex(), Link(destination, title))
+            return MatchedLink(true, lexer.saveIndex(), Link(destination, title), typeOfLink.INLINE_LINK)
         }
         return falseReturn
+    }
+
+    //A full reference link consists of a link text immediately followed by a
+    // link label that matches a link reference definition elsewhere in the document.
+    private fun fullReferenceLink(): MatchedLink{
+        val (matched, label) = linkLabel(lexer)
+        val normalizedLabel = Escaping.normalizeLabelContent(label)
+        if(!matched || !linkReferences.containsKey(normalizedLabel)) return falseReturn
+        val reference = linkReferences[normalizedLabel]!!
+        // linkLabel consumes the ']'
+        return MatchedLink(true, lexer.saveIndex(), Link(reference.link, reference.title), typeOfLink.FULL)
+    }
+
+    private fun collapsedReferenceLink(firstLabel: String): MatchedLink {
+        // first make sure the original lexer is just an empty pair of brackets
+        if(!lexer.inspect('['))
+            return falseReturn
+        lexer.advanceCharacter()
+        if(!lexer.inspect { it == ']' })
+            return falseReturn
+        // at this point it is just a shortcut label
+        val (matched, label) = linkLabel(InlineLexer(firstLabel))
+        val normalizedLabel = Escaping.normalizeLabelContent(label)
+        if(!matched || !linkReferences.containsKey(normalizedLabel)) return falseReturn
+        val reference = linkReferences[normalizedLabel]!!
+        return MatchedLink(true, lexer.saveIndex(), Link(reference.link, reference.title), typeOfLink.COLLAPSED)
+    }
+
+    private fun shortcutReferenceLink(firstLabel: String): MatchedLink {
+        val matchedPostLabel = linkLabel(lexer)
+        // cannot have any valid label after this to be a shortcut testcase 567
+        if(matchedPostLabel.first) return falseReturn
+
+        val (matched, label) = linkLabel(InlineLexer(firstLabel))
+        val normalizedLabel = Escaping.normalizeLabelContent(label)
+        if(!matched || !linkReferences.containsKey(normalizedLabel)) return falseReturn
+        val reference = linkReferences[normalizedLabel]!!
+        return MatchedLink(true, lexer.saveIndex(), Link(reference.link, reference.title), typeOfLink.SHORTCUT)
     }
 
     private fun backslashEscaped(): Boolean {
@@ -65,7 +118,7 @@ class LinkMatcher(line: String) {
     }
 
     // will return whether it contains a valid link label, as well as the corresponding label
-    private fun linkLabel(): Pair<Boolean, String> {
+    private fun linkLabel(lexer: InlineLexer): Pair<Boolean, String> {
         val falseReturn = Pair(false, "")
         val builder = StringBuilder()
         if (!lexer.inspect('[')) {
@@ -77,14 +130,13 @@ class LinkMatcher(line: String) {
             // first check whether it was escaped or not
             val char = lexer.getChar()
             if (char == '[') {
-                if (!escapedBracket(lexer)) {
+                if (!Escaping.escapedBracket(lexer)) {
                     return falseReturn
                 } else {
                     builder.append('[')
                 }
             } else if (char == ']') {
-                if (!escapedBracket(lexer)) {
-                    lexer.advanceCharacter()
+                if (!Escaping.escapedBracket(lexer)) {
                     val label = builder.toString()
                     if (label.length > 999) {
                         return falseReturn
@@ -96,18 +148,22 @@ class LinkMatcher(line: String) {
             }
             lexer.advanceCharacter()
         }
+        // check for trailing ]
+        if(lexer.inspect { it == ']' } && !Escaping.escapedBracket(lexer)){
+            return Pair(true, builder.toString())
+        }
         return falseReturn
     }
 
-    private fun linkDestination(inline: Boolean): Pair<Boolean, String> {
-        return if (lexer.inspect('<')) bracketedDestination() else rawDestination(inline)
+    private fun linkDestination(inline: Boolean, lexer : InlineLexer): Pair<Boolean, String> {
+        return if (lexer.inspect('<')) bracketedDestination(lexer) else rawDestination(inline, lexer)
     }
 
     /*
     a sequence of zero or more characters between an opening < and a closing >
     that contains no line breaks or unescaped < or > characters, or
      */
-    private fun bracketedDestination(): Pair<Boolean, String> {
+    private fun bracketedDestination(lexer: InlineLexer): Pair<Boolean, String> {
         val falseReturn = Pair(false, "")
         val builder = StringBuilder()
         // skip the bracket, will be checked in linkDestination
@@ -116,12 +172,12 @@ class LinkMatcher(line: String) {
             // first check whether it was escaped or not
             var char = lexer.getChar()
             if (char == '<') {
-                if (!escapedBracket(lexer)) {
+                if (!Escaping.escapedBracket(lexer)) {
                     return falseReturn
                 }
             } else if (char == '>') {
                 lexer.advanceCharacter()
-                if (!escapedBracket(lexer)) {
+                if (!Escaping.escapedBracket(lexer)) {
                     return Pair(true, builder.toString())
                 }
             } else if (char == '\n') {
@@ -159,7 +215,7 @@ class LinkMatcher(line: String) {
     (Implementations may impose limits on parentheses nesting to avoid performance issues,
     but at least three levels of nesting should be supported.)
      */
-    private fun rawDestination(inline: Boolean): Pair<Boolean, String> {
+    private fun rawDestination(inline: Boolean, lexer: InlineLexer): Pair<Boolean, String> {
         val falseReturn = Pair(false, "")
         val builder = StringBuilder()
         //inline allows this to successfullly end successfully upon getting a closing brace that is unmatched
@@ -176,11 +232,11 @@ class LinkMatcher(line: String) {
                     falseReturn
                 }
             } else if (char == '(') {
-                if (!escapedBracket(lexer)) {
+                if (!Escaping.escapedBracket(lexer)) {
                     brackets.push(char)
                 }
             } else if (char == ')') {
-                if (!escapedBracket(lexer)) {
+                if (!Escaping.escapedBracket(lexer)) {
                     if (brackets.isEmpty()) {
                         // this will be fine, as it just ends in a bracket
                         return if(inline){
@@ -218,7 +274,7 @@ class LinkMatcher(line: String) {
 
     a sequence of zero or more characters between matching parentheses ((...)), including a ( or ) character only if it is backslash-escaped.
      */
-    private fun linkTitle(): Pair<Boolean, String> {
+    private fun linkTitle(lexer: InlineLexer): Pair<Boolean, String> {
         val falseReturn = Pair(false, "")
         val builder = StringBuilder()
         val closer = when (lexer.getChar()) {
@@ -235,7 +291,7 @@ class LinkMatcher(line: String) {
                 lexer.advanceCharacter()
                 return Pair(true, builder.toString())
             } else if (char == '(' && closer == ')') {
-                if (!escapedBracket(lexer)) {
+                if (!Escaping.escapedBracket(lexer)) {
                     return falseReturn
                 }
             } else if (char == '\\') {
@@ -255,16 +311,10 @@ class LinkMatcher(line: String) {
         return falseReturn
     }
 
-    // assumes that the following text is a square bracket
-    private fun escapedBracket(lexer: InlineLexer): Boolean {
-        lexer.goBackOne()
-        val ret = lexer.inspect('\\')
-        lexer.advanceCharacter()
-        return ret
-    }
+
 
     companion object {
         // just a single instantiation for a false return then
-        private val falseReturn = Triple(false, 0, Link("", ""))
+        private val falseReturn = MatchedLink(false, 0, Link("", ""), typeOfLink.FULL)
     }
 }

@@ -72,7 +72,21 @@ object Escaping {
         return sb.toString()
     }
 
+    // assumes that the following text is a square bracket
+    public fun escapedBracket(lexer: InlineLexer): Boolean {
+        var backslashes = 0
+        do{
+            lexer.goBackOne()
+            if(lexer.inspect('\\')) backslashes++
+        } while (lexer.inspect('\\'))
+        val ret = backslashes % 2 == 1
+        lexer.advanceCharacter(backslashes + 1)
+        return ret
+    }
+
     private interface Replacer {
         fun replace(input: String, sb: StringBuilder)
     }
+
+
 }

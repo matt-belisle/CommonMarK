@@ -22,8 +22,8 @@ import java.time.Instant
 // so put blank line last, and paragraph second last
 // containers are the containers that can be parsed to
 class CommonMarkParser(
-    private val leaves: List<IStaticMatchableLeaf<out Leaf>>,
-    private val containers: List<IStaticMatchableContainer<out Container>>,
+    leaves: List<IStaticMatchableLeaf<out Leaf>>,
+    containers: List<IStaticMatchableContainer<out Container>>,
     private val visitors: List<com.matt.belisle.commonmark.visitors.Visitor>,
     private val emphasisTypes: List<Emphasis<*>>
 ) {

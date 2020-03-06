@@ -66,7 +66,7 @@ class LinkReferenceDefinitionVisitor : PostOrderTraversalVisitor() {
             return listOf(paragraph)
         }
         // non optional space, this MUST BE THE END or else it isnt an LRD
-        if(!lexer.inspect { it.isWhitespace() || it == '\n' }){
+        if(!lexer.inspect { it.isWhitespace() || it == '\n' } && !lexer.isEndOfData() ){
             return listOf(paragraph)
         }
         lexer.skipSpaces()
@@ -158,7 +158,7 @@ class LinkReferenceDefinitionVisitor : PostOrderTraversalVisitor() {
                 if(!escapedBracket(lexer)){
                     lexer.advanceCharacter()
                     val label = builder.toString()
-                    if(label.length > 999){
+                    if(label.length > 999 || label.isBlank()){
                         return falseReturn
                     }
                     return Pair(true, label)
@@ -225,7 +225,7 @@ class LinkReferenceDefinitionVisitor : PostOrderTraversalVisitor() {
         while(!lexer.isEndOfData()){
             val char = lexer.getChar()
             lexer.advanceCharacter()
-            if(char == ' '){
+            if(char == ' ' || char == '\n'){
                 return if(brackets.isEmpty()){
                     lexer.goBackOne()
                     Pair(true, builder.toString())
@@ -293,10 +293,15 @@ class LinkReferenceDefinitionVisitor : PostOrderTraversalVisitor() {
         return falseReturn
     }
     // assumes that the following text is a square bracket
+    //TODO A lot of this functionality is duplicated inside of LinkMatcher
     private fun escapedBracket(lexer: InlineLexer): Boolean{
-        lexer.goBackOne()
-        val ret = lexer.inspect('\\')
-        lexer.advanceCharacter()
+        var backslashes = 0
+        do{
+            lexer.goBackOne()
+            if(lexer.inspect('\\')) backslashes++
+        } while (lexer.inspect('\\'))
+        val ret = backslashes % 2 == 1
+        lexer.advanceCharacter(backslashes + 1)
         return ret
     }
 

@@ -109,7 +109,8 @@ class InlineParser {
                 validDelimiters,
                 runCreators,
                 emphasisRuns,
-                emphasis
+                emphasis,
+                linkReferences
             )
             // next character
             lexer.advanceCharacter()
@@ -130,7 +131,8 @@ class InlineParser {
                 validDelimiters,
                 runCreators,
                 emphasisRuns,
-                emphasis
+                emphasis,
+                linkReferences
             )
         }
         //process emphasis as we know where the runs are, this is why the inline metadata needs to be priority queue
@@ -151,7 +153,8 @@ class InlineParser {
         validDelimiters: MutableSet<Char>,
         runCreators: MutableMap<Char, (Int, Char, Char, Int) -> Run>,
         emphasisRuns: DelimiterLinkedList<Run>,
-        emphasis: Boolean
+        emphasis: Boolean,
+        linkReferences: Map<String, LinkReferenceDefinition>
     ) {
         val savedIndex = lexer.saveIndex()
         //softBreak and hardBreak
@@ -190,7 +193,7 @@ class InlineParser {
             }
             ']' -> {
                 if(links) {
-                    processLinkOrImage(emphasisRuns, inlineLocations, lexer)
+                    processLinkOrImage(emphasisRuns, inlineLocations, lexer, linkReferences)
                 }
             }
             in validDelimiters -> {
@@ -212,7 +215,7 @@ class InlineParser {
                     // stops double counting of the last character as these are not put into inlineMetadata yet
                     // the last character may be a single character in a different run if the delimiter is different though
                     val finalChar = lexer.getChar()
-                    if (!lexer.isEndOfData() || (finalChar != char && finalChar in validDelimiters)) {
+                    if (!lexer.isEndOfData() || finalChar != char) {
                         lexer.goBackOne()
                     }
                 }
@@ -424,7 +427,7 @@ class InlineParser {
     }
 
 
-    private fun processLinkOrImage(emphasisRuns: DelimiterLinkedList<Run>, inlineMetaData: PriorityQueue<InlineMetaData>, lexer: InlineLexer) {
+    private fun processLinkOrImage(emphasisRuns: DelimiterLinkedList<Run>, inlineMetaData: PriorityQueue<InlineMetaData>, lexer: InlineLexer, linkReferences: Map<String, LinkReferenceDefinition>) {
         //Assumes it is at the closing ']' of the link/image text
         //This WILL change the state of the lexer if successful
         val preProcessIndex = lexer.saveIndex()
@@ -437,10 +440,11 @@ class InlineParser {
         // unsuccessful
         if(opener == null) return
 
-        val linkMatcher = LinkMatcher(lexer.subString(preProcessIndex + 1))
-        val (isLinkOrImage, endingIndex, link) = linkMatcher.link()
+        val linkMatcher = LinkMatcher(lexer.subString(preProcessIndex + 1), linkReferences)
+        // include the closing ']' in the collapsed/shortcut label
+        val matchedLink = linkMatcher.link(lexer.subString(opener.element.startingIndex, preProcessIndex + 1))
         val image = lexer.getChar(opener.element.startingIndex - 1) == '!'
-        if(!isLinkOrImage){
+        if(!matchedLink.matched){
             return
         }
         if(image){ return }
@@ -450,9 +454,10 @@ class InlineParser {
             emphasisRuns.removeMatchingBeforeNode({it.element.delimiter == '['}, opener)
             processEmphasis(emphasisRuns, opener, inlineMetaData)
             // set the end of the text appropriately
-            link.textEnd = preProcessIndex
-            val normalizedEnding = endingIndex + preProcessIndex + 1
-            inlineMetaData.add(InlineMetaData(opener.element.startingIndex, normalizedEnding,InlineTypes.LINK, link))
+            matchedLink.link.textEnd = preProcessIndex
+
+            val normalizedEnding = matchedLink.endOfLinkIndex + preProcessIndex + (if(matchedLink.typeOfLink == typeOfLink.SHORTCUT ) 0 else 1)
+            inlineMetaData.add(InlineMetaData(opener.element.startingIndex, normalizedEnding,InlineTypes.LINK, matchedLink.link))
             lexer.goTo(normalizedEnding)
         }
     }
@@ -466,11 +471,9 @@ private fun linkText(lexer: InlineLexer, start: Int, end: Int): Boolean {
     lexer.goBackOne()
     while(lexer.saveIndex() > end){
         if(lexer.inspect(']')){
-            s.add(']')
+            if(!Escaping.escapedBracket(lexer)) s.add(']')
         } else if(lexer.inspect('[')){
-            // may be escaped
-            lexer.goBackOne()
-            if(!lexer.inspect { it == '\\' }) {
+            if(!Escaping.escapedBracket(lexer)) {
                 if (s.empty()) {
                     lexer.goTo(initial)
                     return false
@@ -478,7 +481,6 @@ private fun linkText(lexer: InlineLexer, start: Int, end: Int): Boolean {
                     s.pop()
                 }
             }
-            lexer.advanceCharacter()
         }
         lexer.goBackOne()
     }

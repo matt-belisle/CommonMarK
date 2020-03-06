@@ -2,7 +2,15 @@ package com.matt.belisle.commonmark.ast
 
 import com.matt.belisle.commonmark.TestCase
 import com.matt.belisle.commonmark.TestCases
+import com.matt.belisle.commonmark.ast.containerBlocks.BlockQuote
+import com.matt.belisle.commonmark.ast.containerBlocks.ListItem
+import com.matt.belisle.commonmark.ast.inlineElements.EmphasisAsterisk
+import com.matt.belisle.commonmark.ast.inlineElements.EmphasisUnderscore
+import com.matt.belisle.commonmark.ast.leafBlocks.*
 import com.matt.belisle.commonmark.parser.CommonMarkParser
+import com.matt.belisle.commonmark.visitors.linkReferenceDefinitionVisitor.LinkReferenceDefinitionVisitor
+import com.matt.belisle.commonmark.visitors.listVisitors.BlankLinePropagationVisitor
+import com.matt.belisle.commonmark.visitors.listVisitors.CreateListBlockVisitor
 
 import org.junit.Assert
 import org.junit.ComparisonFailure
@@ -23,12 +31,11 @@ abstract class BasicBlockTest {
 
     private fun runSpecTest(tests : List<TestCase>, singleTest: Boolean){
         var failed = false
-        val parser = CommonMarkParser()
         tests.forEach {
+            val parser = CommonMarkParser()
             println("Parsing ${it.example}")
             val parsed = parser.parse(it.markdown.split('\n').dropLast(1))
             val rendered = parsed.render()
-            //TODO for now keep here as just wanting to see block structure is correct, once inlines started do not have this
             try{
                 Assert.assertEquals(
                     "test ${it.example} Failed\n Parsed: $rendered\nExpected: ${it.html}",
