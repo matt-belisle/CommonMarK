@@ -69,19 +69,57 @@ class LinkReferenceDefinitionVisitor : PostOrderTraversalVisitor() {
         if(!lexer.inspect { it.isWhitespace() || it == '\n' } && !lexer.isEndOfData() ){
             return listOf(paragraph)
         }
-        lexer.skipSpaces()
+        lexer.advanceWhile { it != '\n' && it.isWhitespace() }
         // title is optional
         if(lexer.isEndOfData()){
             addLinkReference(label.toLowerCase(), destination)
+            // the paragraph isnt technically empty if it has a setext line
+            if(paragraph.isSetext){
+                paragraphsStrBuilder.clear()
+                paragraphsStrBuilder.append(paragraph.setextLine)
+                paragraph.isSetext = false
+                paragraph.setextLine = ""
+                return listOf(paragraph)
+            }
             return emptyList()
         }
         // optionally skip one new line
-        lexer.skipSpacesMaximumNewLines(1)
+        val skippedBetweenDestAndTitle = lexer.skipSpacesMaximumNewLines(1)
+        val preTitleIndex =  lexer.saveIndex()
         val endOfDestination = lexer.saveIndex()
-        val (isTitle, title) = linkTitle(lexer)
+        var (isTitle, title, wasData) = linkTitle(lexer)
 
         if(isTitle){
-            addLinkReference(label,destination,title)
+            // if the title was not the end of the current line
+            // it should not match
+            //advance past the final char in title
+
+            lexer.advanceCharacter()
+            if(!lexer.isEndOfData()) {
+                while (!lexer.isEndOfData()) {
+                    if (lexer.inspect('\n')) {
+                        break
+                    } else if (!lexer.inspectWhitespace()) {
+                        // there was a character after the title so not an LRD unless...
+                        // it was on a new line; then the title was actually omitted see test 179
+                        if(skippedBetweenDestAndTitle == 0) {
+                            return listOf(paragraph)
+                        } else {
+                            // since the next line could have been a title there won't be any more LRDs
+                            addLinkReference(label,Escaping.unescapeString(destination),Escaping.unescapeString(title))
+                            paragraphsStrBuilder.clear()
+                            paragraphsStrBuilder.append(line.substring(preTitleIndex))
+                            return listOf(paragraph)
+                            break
+                        }
+                    }
+                    lexer.advanceCharacter()
+                }
+                if (!lexer.inspect { it.isWhitespace() }) {
+                    return listOf(paragraph)
+                }
+            }
+            addLinkReference(label,Escaping.unescapeString(destination),Escaping.unescapeString(title))
             return if(lexer.isEndOfData()){
                 emptyList()
             } else{
@@ -92,11 +130,13 @@ class LinkReferenceDefinitionVisitor : PostOrderTraversalVisitor() {
                 // see if we can get another LRD right after
                 visit(paragraph)
             }
-        } else {
+        } else if(!wasData){
             addLinkReference(label,destination)
             paragraphsStrBuilder.clear()
             paragraphsStrBuilder.append(line.substring(endOfDestination))
             return visit(paragraph)
+        } else {
+            return listOf(paragraph)
         }
     }
 
@@ -259,9 +299,10 @@ class LinkReferenceDefinitionVisitor : PostOrderTraversalVisitor() {
     a sequence of zero or more characters between straight single-quote characters ('), including a ' character only if it is backslash-escaped, or
 
     a sequence of zero or more characters between matching parentheses ((...)), including a ( or ) character only if it is backslash-escaped.
+    No BLANK LINES
      */
-    private fun linkTitle(lexer: InlineLexer): Pair<Boolean, String>{
-        val falseReturn = Pair(false, "")
+    private fun linkTitle(lexer: InlineLexer): Triple<Boolean, String, Boolean>{
+        val falseReturn = Triple(false, "", false)
         val builder = StringBuilder()
         val closer = when(lexer.getChar()){
             '"' -> '"'
@@ -272,25 +313,24 @@ class LinkReferenceDefinitionVisitor : PostOrderTraversalVisitor() {
         lexer.advanceCharacter()
         while(!lexer.isEndOfData()){
             val char = lexer.getChar()
-            lexer.advanceCharacter()
             if(char == closer){
                 if(!Escaping.escapedBracket(lexer)){
-                    return Pair(true, builder.toString())
+                    return Triple(true, builder.toString(), true)
                 }
             } else if(char == '(' && closer == ')'){
                 if(!Escaping.escapedBracket(lexer)){
-                    return falseReturn
+                    return Triple(false, "", true)
                 }
             }
-
+            lexer.advanceCharacter()
             builder.append(char)
         }
 
 
         if(lexer.inspect { it == closer }){
-            return Pair(true, builder.toString())
+            return Triple(true, builder.toString(), true)
         }
-        return falseReturn
+        return Triple(false,"",true)
     }
 
 }

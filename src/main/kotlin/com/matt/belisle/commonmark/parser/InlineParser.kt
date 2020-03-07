@@ -443,15 +443,50 @@ class InlineParser {
         val linkMatcher = LinkMatcher(lexer.subString(preProcessIndex + 1), linkReferences)
         // include the closing ']' in the collapsed/shortcut label
         val matchedLink = linkMatcher.link(lexer.subString(opener.element.startingIndex, preProcessIndex + 1))
-        val image = lexer.getChar(opener.element.startingIndex - 1) == '!'
+        // new lexer as to not destroy where the main lexer is
+        val removeLexer: InlineLexer = InlineLexer(lexer.line)
+        val image = if(lexer.getChar(opener.element.startingIndex - 1) == '!') {
+            removeLexer.goTo(opener.element.startingIndex - 1)
+            // if its escaped then it is not an image (\![) otherwise is of the form (![)
+            !Escaping.escapedBracket(removeLexer)
+        } else false
         if(!matchedLink.matched){
             return
         }
-        if(image){ return }
+        if(image){
+//            //same as link, but don't remove matching
+            processEmphasis(emphasisRuns, opener, inlineMetaData)
+            // set the end of the text appropriately
+            matchedLink.link.textEnd = preProcessIndex
+
+            val normalizedEnding = matchedLink.endOfLinkIndex + preProcessIndex + (if(matchedLink.typeOfLink == typeOfLink.SHORTCUT ) 0 else 1)
+            inlineMetaData.add(InlineMetaData(opener.element.startingIndex, normalizedEnding,InlineTypes.LINK, matchedLink.link))
+            lexer.goTo(normalizedEnding)
+
+        }
         else {
             // we are now a link
             // set all '[' before opener to inactive (remove them)
-            emphasisRuns.removeMatchingBeforeNode({it.element.delimiter == '['}, opener)
+            // do not remove ![
+
+            emphasisRuns.removeMatchingBeforeNode({
+                var ret = false
+                if(it.element.delimiter == '[') {
+                    val isImage = removeLexer.getChar(it.element.startingIndex - 1) == '!'
+                    ret = if (isImage) {
+                        removeLexer.goTo(it.element.startingIndex - 1)
+                        //![ check for backslash escaped ! now
+                        // if it is escaped return true as just a regular link opener
+                        // if not escaped then don't remove as it is an image opener
+                        Escaping.escapedBracket(removeLexer)
+                    } else {
+                        true
+                    }
+                }
+                // not the correct delimiter
+                ret
+            }, opener)
+
             processEmphasis(emphasisRuns, opener, inlineMetaData)
             // set the end of the text appropriately
             matchedLink.link.textEnd = preProcessIndex
@@ -460,6 +495,7 @@ class InlineParser {
             inlineMetaData.add(InlineMetaData(opener.element.startingIndex, normalizedEnding,InlineTypes.LINK, matchedLink.link))
             lexer.goTo(normalizedEnding)
         }
+        emphasisRuns.remove(opener)
     }
 }
 //returns whether the text between two indices is valid link text, (balanced bracket checking)
@@ -535,8 +571,8 @@ fun createInlines(inlineMetaData: PriorityQueue<InlineMetaData>, line: String, d
         // make the next inline
         if(it.type == InlineTypes.STRONG_EMPHASIS || it.type == InlineTypes.WEAK_EMPHASIS || it.type == InlineTypes.LINK || it.type == InlineTypes.IMAGE){
             val end =
-            if(it.type == InlineTypes.LINK) {
-                (it.extra as Link).textEnd
+            if(it.type == InlineTypes.LINK || it.type == InlineTypes.IMAGE) {
+                (it.extra as InlineLinks).textEnd
             } else it.end
             val embedded: MutableList<InlineMetaData> = mutableListOf()
             i++

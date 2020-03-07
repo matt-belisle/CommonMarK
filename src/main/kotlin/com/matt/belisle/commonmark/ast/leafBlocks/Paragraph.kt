@@ -21,6 +21,7 @@ class Paragraph private constructor(parent: Container, indent: Int) : Leaf(paren
     var setextLevel: Int = 0
 
     var ignoreSetext = false
+    var setextLine: String = ""
 
     private constructor(line: String, indentation: Int, parent: Container) : this(parent, indentation) {
         inline.add(InlineString(line))
@@ -48,8 +49,23 @@ class Paragraph private constructor(parent: Container, indent: Int) : Leaf(paren
             this.close()
             setextLevel = if (setextChar == '=') 1 else 2
             this.isSetext = true
+            setextLine = line
         } else (inline[0] as InlineString).append(line.trimStart())
         ignoreSetext = false
+    }
+
+    fun merge(other: Paragraph): Paragraph {
+        // get the new inlineString
+        val data = StringBuilder((inline[0] as InlineString).strBuilder)
+        data.append('\n')
+        data.append((other.inline[0] as InlineString).strBuilder)
+        val newP = Paragraph(data.toString(), indent, parent!!)
+        if(other.isSetext) {
+            newP.isSetext = true
+            newP.setextLine = other.setextLine
+        }
+        newP.close()
+        return newP
     }
 
     override fun render(): String {

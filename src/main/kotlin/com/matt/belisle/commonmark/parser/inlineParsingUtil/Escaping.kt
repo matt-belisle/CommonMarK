@@ -10,9 +10,9 @@ import kotlin.experimental.and
 object Escaping {
     const val ESCAPABLE = "[!\"#$%&\'()*+,./:;<=>?@\\[\\\\\\]^_`{|}~-]"
     const val ENTITY = "&(?:#x[a-f0-9]{1,6}|#[0-9]{1,7}|[a-z][a-z0-9]{1,31});"
-    private val BACKSLASH_OR_AMP = Pattern.compile("[\\\\&]")
-    private val ENTITY_OR_ESCAPED_CHAR = Pattern.compile(
-        "\\\\$ESCAPABLE|$ENTITY",
+    private val BACKSLASH_OR_AMP = Pattern.compile("[\\\\]")
+    private val ESCAPED_CHAR = Pattern.compile(
+        "\\\\$ESCAPABLE",
         Pattern.CASE_INSENSITIVE
     )
     // From RFC 3986 (see "reserved", "unreserved") except don't escape '[' or ']' to be compatible with JS encodeURI
@@ -38,6 +38,13 @@ object Escaping {
                     sb.append(HEX_DIGITS[(b.toInt() shr 4) and 0xF])
                     sb.append(HEX_DIGITS[(b and 0xF).toInt()])
                 }
+            }
+        }
+    }
+    private val UNESCAPE_REPLACER: Replacer = object : Replacer {
+        override fun replace(input: String, sb: java.lang.StringBuilder) {
+            if (input[0] == '\\') {
+                sb.append(input, 1, input.length)
             }
         }
     }
@@ -73,7 +80,7 @@ object Escaping {
     }
 
     // assumes that the following text is a square bracket
-    public fun escapedBracket(lexer: InlineLexer): Boolean {
+    fun escapedBracket(lexer: InlineLexer): Boolean {
         var backslashes = 0
         do{
             lexer.goBackOne()
@@ -83,7 +90,13 @@ object Escaping {
         lexer.advanceCharacter(backslashes + 1)
         return ret
     }
-
+    fun unescapeString(s: String): String {
+        return if (BACKSLASH_OR_AMP.matcher(s).find()) {
+            replaceAll(ESCAPED_CHAR, s, UNESCAPE_REPLACER)
+        } else {
+            s
+        }
+    }
     private interface Replacer {
         fun replace(input: String, sb: StringBuilder)
     }

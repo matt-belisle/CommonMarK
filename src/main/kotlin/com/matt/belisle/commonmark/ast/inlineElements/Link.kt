@@ -4,7 +4,7 @@ import com.matt.belisle.commonmark.parser.inlineParsingUtil.EntityReplacement
 import com.matt.belisle.commonmark.parser.inlineParsingUtil.Escaping
 import java.lang.StringBuilder
 
-class Link (val destination: String, title: String, var textEnd: Int = 0) : Inline() {
+class Link (destination: String, title: String, textEnd: Int = 0) : InlineLinks(destination, title, textEnd) {
     private val title = InlineString(title)
     val text: MutableList<Inline> = mutableListOf()
 

@@ -11,6 +11,7 @@ import com.matt.belisle.commonmark.ast.inlineElements.Emphasis
 import com.matt.belisle.commonmark.ast.inlineElements.EmphasisAsterisk
 import com.matt.belisle.commonmark.ast.inlineElements.EmphasisUnderscore
 import com.matt.belisle.commonmark.ast.leafBlocks.*
+import com.matt.belisle.commonmark.visitors.ParagraphMergerVisitor
 import com.matt.belisle.commonmark.visitors.linkReferenceDefinitionVisitor.LinkReferenceDefinitionVisitor
 import com.matt.belisle.commonmark.visitors.listVisitors.BlankLinePropagationVisitor
 import com.matt.belisle.commonmark.visitors.listVisitors.CreateListBlockVisitor
@@ -40,7 +41,7 @@ class CommonMarkParser(
             BlankLine.Companion
         ),
         listOf(BlockQuote.Companion, ListItem.Companion),
-        listOf(LinkReferenceDefinitionVisitor(),BlankLinePropagationVisitor(), CreateListBlockVisitor()),
+        listOf(LinkReferenceDefinitionVisitor(),BlankLinePropagationVisitor(), CreateListBlockVisitor(), ParagraphMergerVisitor()),
         listOf(EmphasisUnderscore.Companion, EmphasisAsterisk.Companion)
     )
 
