@@ -1,6 +1,6 @@
 package com.matt.belisle.commonmark.ast.inlineElements
 
-class EmphasisUnderscore(inlines: List<Inline>, strong: Boolean): InlineEmphasis(inlines) {
+class EmphasisUnderscore(inlines: List<Inline>, strong: Boolean): InlineEmphasis(inlines, strong, "_") {
     override  val tag = if(strong) "strong" else "em"
 
     companion object: Emphasis<EmphasisUnderscore>() {

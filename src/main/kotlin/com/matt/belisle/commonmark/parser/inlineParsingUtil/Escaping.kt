@@ -85,7 +85,7 @@ object Escaping {
         do{
             lexer.goBackOne()
             if(lexer.inspect('\\')) backslashes++
-        } while (lexer.inspect('\\'))
+        } while (lexer.inspect('\\') && lexer.saveIndex() != 0)
         val ret = backslashes % 2 == 1
         lexer.advanceCharacter(backslashes + 1)
         return ret

@@ -15,4 +15,8 @@ class BackslashEscape(private val char: Char) : Inline(){
         }
         return char.toString()
     }
+
+    override fun renderTextContentOnly(entities: Boolean): String {
+        return InlineString("\\$char").render(entities)
+    }
 }

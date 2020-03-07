@@ -48,5 +48,9 @@ class InlineString(line: String) : Inline() {
         strBuilder.append(line)
     }
 
+    override fun renderTextContentOnly(entities: Boolean): String {
+        return render(entities)
+    }
+
 }
 

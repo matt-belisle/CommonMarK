@@ -1,6 +1,6 @@
 package com.matt.belisle.commonmark.ast.inlineElements
 
-class EmphasisAsterisk(inlines: List<Inline>, strong: Boolean): InlineEmphasis(inlines) {
+class EmphasisAsterisk(inlines: List<Inline>, strong: Boolean): InlineEmphasis(inlines, strong, "*") {
    override  val tag = if(strong) "strong" else "em"
 
     companion object: Emphasis<EmphasisAsterisk>() {

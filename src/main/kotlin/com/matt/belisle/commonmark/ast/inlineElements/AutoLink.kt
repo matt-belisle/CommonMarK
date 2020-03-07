@@ -17,4 +17,9 @@ class AutoLink(private val str: String) : Inline(){
         // this will need entity replacement obviously
         return "<a href=\"$type${encoded}\">$rendered</a>"
     }
+
+    override fun renderTextContentOnly(entities: Boolean): String {
+        return InlineString(str).render(entities)
+    }
+
 }

@@ -20,4 +20,8 @@ abstract class Inline {
         }
         return builder.toString()
     }
+    //this is used exclusively for images
+    internal open fun renderTextContentOnly(entities: Boolean): String {
+        return ""
+    }
 }

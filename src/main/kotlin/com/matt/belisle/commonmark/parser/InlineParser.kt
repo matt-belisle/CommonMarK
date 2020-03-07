@@ -458,9 +458,11 @@ class InlineParser {
             processEmphasis(emphasisRuns, opener, inlineMetaData)
             // set the end of the text appropriately
             matchedLink.link.textEnd = preProcessIndex
+            val imageLink = Image(matchedLink.link.destination, matchedLink.link.getTitle(),matchedLink.link.textEnd)
 
             val normalizedEnding = matchedLink.endOfLinkIndex + preProcessIndex + (if(matchedLink.typeOfLink == typeOfLink.SHORTCUT ) 0 else 1)
-            inlineMetaData.add(InlineMetaData(opener.element.startingIndex, normalizedEnding,InlineTypes.LINK, matchedLink.link))
+            // starting index is -1 as ! before the [
+            inlineMetaData.add(InlineMetaData(opener.element.startingIndex - 1, normalizedEnding,InlineTypes.IMAGE, imageLink))
             lexer.goTo(normalizedEnding)
 
         }
@@ -574,18 +576,23 @@ fun createInlines(inlineMetaData: PriorityQueue<InlineMetaData>, line: String, d
             if(it.type == InlineTypes.LINK || it.type == InlineTypes.IMAGE) {
                 (it.extra as InlineLinks).textEnd
             } else it.end
+            //ignore the ![ so push up one
+            val start = if(it.type == InlineTypes.IMAGE){
+                it.start + 1
+            } else it.start
             val embedded: MutableList<InlineMetaData> = mutableListOf()
             i++
             val strong = if(it.type == InlineTypes.STRONG_EMPHASIS) 2 else 1
-            val normalizedDifference = it.start + strong
+            val normalizedDifference = start + strong
             while(inlineMetaData.isNotEmpty() && inlineMetaData.peek().end < end){
                 val metaData = inlineMetaData.poll()
                 embedded.add(metaData)
                 // normalize for recursive call
                 metaData.start -= normalizedDifference
                 metaData.end -= normalizedDifference
-                if(metaData.type == InlineTypes.LINK){
-                    (metaData.extra as Link).textEnd -= normalizedDifference
+                // the text is what is used for inline parsing for the alt/image text
+                if(metaData.type == InlineTypes.LINK || metaData.type == InlineTypes.IMAGE){
+                    (metaData.extra as InlineLinks).textEnd -= normalizedDifference
                 }
                 i++
             }
@@ -619,7 +626,9 @@ fun createInline(inlineMetaData: InlineMetaData, line: String, delimiters: List<
         InlineTypes.ENTITY -> InlineEntity(inlineMetaData.extra as Entity)
         InlineTypes.STRONG_EMPHASIS -> createEmphasis(inlineMetaData, delimiters)
         InlineTypes.WEAK_EMPHASIS -> createEmphasis(inlineMetaData, delimiters)
+        // at this point they are the same
         InlineTypes.LINK -> createLink(inlineMetaData)
+        InlineTypes.IMAGE -> createLink(inlineMetaData)
         else -> throw ParsingException("Unknown inline type ${inlineMetaData.type}")
     }
 }
@@ -632,7 +641,7 @@ fun createEmphasis(inlineMetaData: InlineMetaData, delimiters: List<Emphasis<*>>
 
 }
 fun createLink(inlineMetadata: InlineMetaData): Inline{
-    val extraData: Pair<Link, List<Inline>> = inlineMetadata.extra as Pair<Link, List<Inline>>
+    val extraData: Pair<InlineLinks, List<Inline>> = inlineMetadata.extra as Pair<InlineLinks, List<Inline>>
     extraData.first.text.addAll(extraData.second)
     return extraData.first
 }

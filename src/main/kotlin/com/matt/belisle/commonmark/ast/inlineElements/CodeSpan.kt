@@ -35,4 +35,8 @@ class CodeSpan(str: String) : Inline(){
         }
         return "<code>$code</code>"
     }
+
+    override fun renderTextContentOnly(entities: Boolean): String {
+        return InlineString(code).render(entities)
+    }
 }
