@@ -2,16 +2,7 @@ package com.matt.belisle.commonmark.ast
 
 import com.matt.belisle.commonmark.TestCase
 import com.matt.belisle.commonmark.TestCases
-import com.matt.belisle.commonmark.ast.containerBlocks.BlockQuote
-import com.matt.belisle.commonmark.ast.containerBlocks.ListItem
-import com.matt.belisle.commonmark.ast.inlineElements.EmphasisAsterisk
-import com.matt.belisle.commonmark.ast.inlineElements.EmphasisUnderscore
-import com.matt.belisle.commonmark.ast.leafBlocks.*
 import com.matt.belisle.commonmark.parser.CommonMarkParser
-import com.matt.belisle.commonmark.visitors.linkReferenceDefinitionVisitor.LinkReferenceDefinitionVisitor
-import com.matt.belisle.commonmark.visitors.listVisitors.BlankLinePropagationVisitor
-import com.matt.belisle.commonmark.visitors.listVisitors.CreateListBlockVisitor
-
 import org.junit.Assert
 import org.junit.ComparisonFailure
 
