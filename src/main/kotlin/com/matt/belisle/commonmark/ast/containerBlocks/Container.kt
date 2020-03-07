@@ -40,4 +40,5 @@ abstract class Container(parent: Container?, indent: Int) : Block(parent = paren
     override fun equals(other: Any?): Boolean {
         return if(other is Container) serialNumber == other.serialNumber && children == other.children else false
     }
+
 }

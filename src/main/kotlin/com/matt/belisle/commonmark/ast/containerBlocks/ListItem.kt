@@ -25,7 +25,7 @@ class ListItem private constructor(parent: Container, val startingNumber: Int, v
         if(children.size == 1 && children.first() is BlankLine && line.isBlank()){
             return false
         }
-        return line.countLeadingSpaces() >= indent ||
+        return line.countLeadingSpaces().first >= indent ||
                 line.isBlank()
     }
 
@@ -38,6 +38,10 @@ class ListItem private constructor(parent: Container, val startingNumber: Int, v
             val leadingBlankLine = if (children.first() is BlankLine) 1 else 0
             val trailingBlankLine = if (children.last() is BlankLine && children.size > 1) 1 else 0
             loose = children.drop(leadingBlankLine).dropLast(trailingBlankLine).any { it is BlankLine }
+    }
+
+    fun expandSpacesPastMarker(str: String): String {
+        return ""
     }
 
     override fun render(): String {
@@ -68,14 +72,14 @@ class ListItem private constructor(parent: Container, val startingNumber: Int, v
         override val canInterruptParagraph: Boolean = true
 
         override fun match(line: String, currentOpenBlock: Block, indentation: Int): Boolean {
-            if(line.countLeadingSpaces() > indentCheck(indentation)) return false
+            if(line.countLeadingSpaces().first > indentCheck(indentation)) return false
             return matchWithData(line, currentOpenBlock, indentation).first
         }
 
         private fun matchWithData(line: String, currentOpenBlock: Block, indentation: Int): Pair<Boolean, MarkerType> {
             // cannot be interpreted as a indented code block
 
-            if(indentCheck(indentation) < line.countLeadingSpaces()) return Pair(false, MarkerType.NUMERIC_BRACKET)
+            if(indentCheck(indentation) < line.countLeadingSpaces().first) return Pair(false, MarkerType.NUMERIC_BRACKET)
             val trimmedFront = line.trimStart()
             val (matchNumeric, markerNumeric, startingNumber) = numericListMatch(trimmedFront, currentOpenBlock)
             val (matchBullet, markerBullet) = bulletListMatch(trimmedFront, currentOpenBlock)
@@ -89,7 +93,7 @@ class ListItem private constructor(parent: Container, val startingNumber: Int, v
             // When both a thematic break and a list item are possible interpretations of a line,
             // the thematic break takes precedence
             val markerType = if(matchNumeric) markerNumeric else markerBullet
-            return Pair(line.countLeadingSpaces() < indentCheck(indentation) &&
+            return Pair(line.countLeadingSpaces().first < indentCheck(indentation) &&
                     (matchNumeric || matchBullet) &&
                     !ThematicBreak.match(line, currentOpenBlock, indentation), markerType)
         }
@@ -155,8 +159,8 @@ class ListItem private constructor(parent: Container, val startingNumber: Int, v
                 //these are similar to the rules for numeric
                 if((marker == MarkerType.NUMERIC_DOT) ||
                     // it cannot interrupt a paragraph BUT to continue the paragraph but not make a new the list it must be nested less than the paragraph
-                    (dropped.isBlank() && (currentOpenBlock is Paragraph && currentOpenBlock.indent <= line.countLeadingSpaces())) ||
-                    (dropped.isNotEmpty() && dropped[0] != ' ')){
+                    (dropped.isBlank() && (currentOpenBlock is Paragraph && currentOpenBlock.indent <= line.countLeadingSpaces().first)) ||
+                    (dropped.isNotEmpty() && !dropped[0].isWhitespace())){
                     return falseReturn
                 }
 
@@ -173,26 +177,23 @@ class ListItem private constructor(parent: Container, val startingNumber: Int, v
         ): Pair<ListItem, String> {
 
             assert(match(line, currentOpenBlock, indentation))
-            val leadingWhitespace = line.countLeadingSpaces()
+            val leadingWhitespace = line.countLeadingSpaces().first
             val trimmed = line.trimStart()
 
             val bulletListMatch = bulletListMatch(trimmed, currentOpenBlock)
             if(bulletListMatch.match){
-                //blank lines add no extra indent other than necessary one space
+                //expand the tabs in the restOfLineArgument
+                //note that a bullet list is only one char so add a space at beginning then expand as to create correct tab stop
                 val markerLength = 1
-                var indent = if(bulletListMatch.restOfLine.isNotBlank()) bulletListMatch.restOfLine.countLeadingSpaces() else 1
-                // for indented code blocks
-                if(indent > 4){
-                    indent = 2
-                }
+                val (correctedLine, indent) = getTabExpandedStringAndIndent(bulletListMatch.restOfLine, 1)
                 return Pair(ListItem(parent, -1, bulletListMatch.marker, leadingWhitespace + markerLength + indent),
-                    " ".repeat(leadingWhitespace + 1) + bulletListMatch.restOfLine)
+                    correctedLine)
             }
 
             val numericListMatch = numericListMatch(trimmed, currentOpenBlock)
             if(numericListMatch.match){
                 //blank lines add no indent other than necessary one space
-                var indent = if(numericListMatch.restOfLine.isNotBlank()) numericListMatch.restOfLine.countLeadingSpaces() else 1
+                var indent = if(numericListMatch.restOfLine.isNotBlank()) numericListMatch.restOfLine.countLeadingSpaces().first else 1
                 // for indented code blocks
                 if(indent > 4){
                     indent = 1
@@ -206,6 +207,21 @@ class ListItem private constructor(parent: Container, val startingNumber: Int, v
             }
             // shouldn't ever get here so crash if so
             throw Exception("Invalid List Marker")
+        }
+
+        private fun getTabExpandedStringAndIndent(str: String, markerLength: Int): Pair<String, Int>{
+            val (leadingSpaces, leadingSpacesIndex) = str.prependIndent("  ".repeat(markerLength)).countLeadingSpaces()
+            val correctedLine = if(str.isNotBlank()) str.drop(leadingSpacesIndex - 2).prependIndent(" ".repeat(leadingSpaces - 1)) else str
+            //blank lines add no extra indent other than necessary one space
+            var indent = if(str.isNotBlank()) leadingSpaces - 2 else 1
+            // for indented code blocks
+            if(indent > 4){
+                indent = 2
+            }
+            if(str.isNotEmpty() && str[0] != ' '){
+                indent = 0
+            }
+            return Pair(correctedLine, indent)
         }
     }
 }

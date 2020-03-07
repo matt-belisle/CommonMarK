@@ -8,7 +8,7 @@ class HTMLBlockTest: BasicBlockTest(){
 
     @Test
     fun specTest() {
-        specTest(355)
-//        specTest("HTML blocks")
+        specTest(118)
+        specTest("HTML blocks")
     }
 }

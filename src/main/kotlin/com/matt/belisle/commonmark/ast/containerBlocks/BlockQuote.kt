@@ -12,6 +12,7 @@ class BlockQuote(parent: Container, indent: Int) : Container(parent = parent, in
         return dropMarker(line)
     }
 
+
     override fun render(): String {
         val builder = StringBuilder()
         with(builder){
@@ -32,11 +33,7 @@ class BlockQuote(parent: Container, indent: Int) : Container(parent = parent, in
         val trimmed = line.trimStart()
 
         if (trimmed.isNotEmpty()) {
-            // we either directly match this blockquote
             return trimmed[0] == '>'
-                 //else {
-//                lazyContinue(line)
-//            }
         }
         return false
     }
@@ -54,8 +51,8 @@ class BlockQuote(parent: Container, indent: Int) : Container(parent = parent, in
             // just for matching, this is fine to just make indentCheck and check leadingChar is a '>'
             //single character no space
 
-            val leadingSpaces = line.countLeadingSpaces()
-            return line.isNotBlank() && leadingSpaces < indentCheck(indentation) &&  line[leadingSpaces] == '>'
+            val (leadingSpaces, endOfSpaces) = line.countLeadingSpaces()
+            return line.isNotBlank() && leadingSpaces < indentCheck(indentation) &&  line[endOfSpaces] == '>'
         }
 
         override fun parse(
@@ -69,11 +66,30 @@ class BlockQuote(parent: Container, indent: Int) : Container(parent = parent, in
             return Pair(BlockQuote(parent, indentation), dropMarker(line.trimStart()))
         }
 
-
+    //TODO tab needs to be expanded here
         fun dropMarker(line: String): String {
-            val trimmed = line.trimStart()
+            val trimmed = expandSpacesPastMarker(line.trimStart())
             // if we can match a blockQuote marker then remove it, if not return the line as was
-            return if (line.countLeadingSpaces() < 4 && trimmed[0] == '>') trimmed.drop(if (line.length > 1 && line[1] == ' ') 2 else 1) else line
+            return if (line.countLeadingSpaces().first < 4 && trimmed[0] == '>') trimmed.drop(if (trimmed.length > 1 && trimmed[1] == ' ') 2 else 1) else line
+        }
+
+        //assumes a line in the format >\s...
+        private fun expandSpacesPastMarker(str: String): String {
+            if(str.length < 2) return str
+            if(str[1] == ' ') return str
+            else if(str[1].isWhitespace()){
+                //expand all tabs into spaces until first char
+                //insert space to create correct tab stop
+                val droppedMarker = str.drop(1)
+                val (leadingSpaces, leadingSpaceIndex) = droppedMarker.prependIndent(" ").countLeadingSpaces()
+                val builder = StringBuilder()
+                builder.append(">")
+                builder.append(" ".repeat(leadingSpaces - 1))
+                builder.append(droppedMarker.substring(leadingSpaceIndex - 1))
+                return builder.toString()
+            }
+            return str
         }
     }
+
 }

@@ -116,7 +116,7 @@ class HTMLBlock private constructor(parent: Container, indent: Int, private val 
 
         // this will be the match to open a new paragraph block
         override fun match(line: String, currentOpenBlock: Block, indentation: Int): Boolean {
-            return line.countLeadingSpaces() < indentCheck(indentation) && matchWithType(line.trimStart(), currentOpenBlock).first
+            return line.countLeadingSpaces().first < indentCheck(indentation) && matchWithType(line.trimStart(), currentOpenBlock).first
         }
         private fun matchWithType(line: String, currentOpenBlock: Block): Pair<Boolean, HTMLBlockType> {
             if(!line.startsWith('<')){

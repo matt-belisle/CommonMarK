@@ -45,7 +45,7 @@ class Paragraph private constructor(parent: Container, indent: Int) : Leaf(paren
         assert(match(line))
         val trimmed = line.trimStart()
         val (isSetext, setextChar) = isSetext(trimmed.trimEnd())
-        if (!ignoreSetext && isSetext && line.countLeadingSpaces() < 4) {
+        if (!ignoreSetext && isSetext && line.countLeadingSpaces().first < 4) {
             this.close()
             setextLevel = if (setextChar == '=') 1 else 2
             this.isSetext = true

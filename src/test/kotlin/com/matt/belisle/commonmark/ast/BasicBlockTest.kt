@@ -19,6 +19,9 @@ abstract class BasicBlockTest {
     fun specTest(test: TestCase){
         runSpecTest(listOf(test), true)
     }
+    fun allSpecTest(){
+        runSpecTest(TestCases.testCases, false)
+    }
 
     private fun runSpecTest(tests : List<TestCase>, singleTest: Boolean){
         var failed = false

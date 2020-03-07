@@ -14,12 +14,12 @@ class IndentedCodeBlock(indent: Int, parent: Container) : Leaf(indent = indent, 
     private var lastNonBlankLine: Int = -1
 
     override fun match(line: String): Boolean {
-        return super.match(line) && (line.countLeadingSpaces() >= indentCheck(indent) || line.isBlank())
+        return super.match(line) && (line.countLeadingSpaces().first >= indentCheck(indent) || line.isBlank())
     }
 
     // add the line as is, removing the prefixed spaces
     override fun appendLine(line: String) {
-        inline.add(InlineString(line.removeLeadingChar(' ', indentCheck(indent))))
+        inline.add(InlineString(line.removeIndent (indentCheck(indent))))
 
         if (line.isNotBlank()) {
             lastNonBlankLine = inline.size - 1
@@ -79,7 +79,7 @@ class IndentedCodeBlock(indent: Int, parent: Container) : Leaf(indent = indent, 
                     return false
                 }
             }
-            return line.countLeadingSpaces() >= indentCheck(indentation) && line.isNotBlank()
+            return line.countLeadingSpaces().first >= indentCheck(indentation) && line.isNotBlank()
         }
 
     }

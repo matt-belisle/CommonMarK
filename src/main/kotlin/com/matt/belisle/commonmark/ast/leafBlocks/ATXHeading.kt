@@ -50,12 +50,12 @@ class ATXHeading private constructor(val headingLevel: Int, indentation: Int, pa
             //only need to check that the initial #s are correctly formatted, parse can take care of the post ones
 
             // spec says up to three leading spaces okay
-            if (line.countLeadingSpaces() < indentCheck(indentation)) {
+            if (line.countLeadingSpaces().first < indentCheck(indentation)) {
                 val (trimmed, leadingTags) = trimAndGetLeadingHashTags(line)
                 // at most 6 levels of header
                 // the character following the hashtags must be a space
                 // OR the line can be only hashtags (up to 6)
-                return leadingTags in 1..6 && (trimmed.length == leadingTags || trimmed[leadingTags] == ' ')
+                return leadingTags in 1..6 && (trimmed.length == leadingTags || trimmed[leadingTags].isWhitespace())
             }
             return false
         }

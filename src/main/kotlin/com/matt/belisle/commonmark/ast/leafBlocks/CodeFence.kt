@@ -32,7 +32,7 @@ class CodeFence private constructor(
         val leadingFenceChar = trimmed.countLeadingChar(fenceChar)
 
         // close if the closing fence block is found
-        if (line.countLeadingSpaces() < indentCheck(indent) && leadingFenceChar >= fenceLength && leadingFenceChar == trimmed.length) {
+        if (line.countLeadingSpaces().first < indentCheck(indent) && leadingFenceChar >= fenceLength && leadingFenceChar == trimmed.length) {
             close()
         }else if(inline.size ==  0){
             inline.add(InlineString(removeIndent))
@@ -99,7 +99,7 @@ class CodeFence private constructor(
             }
             // the label in a back ticked code fence may not contain a '`'
             if (codeFenceChar == '`' && trimmed.substring(codeFenceLength).contains('`')) return Triple(' ', 0, 0)
-            return Triple(codeFenceChar, codeFenceLength, indent)
+            return Triple(codeFenceChar, codeFenceLength, indent.first)
         }
     }
 
